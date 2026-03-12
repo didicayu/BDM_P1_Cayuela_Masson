@@ -1,0 +1,18 @@
+[2026-03-12T17:04:42.867+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2026-03-12T17:04:42.892+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: cybersecintel_p1_ingestion_landing.ingest_nvd manual__2026-03-12T17:04:41+00:00 [queued]>
+[2026-03-12T17:04:42.899+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: cybersecintel_p1_ingestion_landing.ingest_nvd manual__2026-03-12T17:04:41+00:00 [queued]>
+[2026-03-12T17:04:42.900+0000] {taskinstance.py:2866} INFO - Starting attempt 1 of 3
+[2026-03-12T17:04:42.917+0000] {taskinstance.py:2889} INFO - Executing <Task(PythonOperator): ingest_nvd> on 2026-03-12 17:04:41+00:00
+[2026-03-12T17:04:42.927+0000] {logging_mixin.py:190} WARNING - /home/***/.local/lib/python3.12/site-packages/***/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=179) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2026-03-12T17:04:42.926+0000] {standard_task_runner.py:104} INFO - Running: ['***', 'tasks', 'run', 'cybersecintel_p1_ingestion_landing', 'ingest_nvd', 'manual__2026-03-12T17:04:41+00:00', '--job-id', '30', '--raw', '--subdir', 'DAGS_FOLDER/p1_ingestion_landing_dag.py', '--cfg-path', '/tmp/tmp3b125nfd']
+[2026-03-12T17:04:42.928+0000] {standard_task_runner.py:72} INFO - Started process 190 to run task
+[2026-03-12T17:04:42.929+0000] {standard_task_runner.py:105} INFO - Job 30: Subtask ingest_nvd
+[2026-03-12T17:04:42.999+0000] {task_command.py:467} INFO - Running <TaskInstance: cybersecintel_p1_ingestion_landing.ingest_nvd manual__2026-03-12T17:04:41+00:00 [running]> on host 943e258275ae
+[2026-03-12T17:04:43.095+0000] {taskinstance.py:3132} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='cybersecintel' AIRFLOW_CTX_DAG_ID='cybersecintel_p1_ingestion_landing' AIRFLOW_CTX_TASK_ID='ingest_nvd' AIRFLOW_CTX_EXECUTION_DATE='2026-03-12T17:04:41+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-03-12T17:04:41+00:00'
+[2026-03-12T17:04:43.095+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2026-03-12T17:04:45.481+0000] {python.py:240} INFO - Done. Returned value was: {'source': 'nvd_cve_api_v2', 'landing_dir': '/opt/project/data/landing/semi_structured/nvd/ingest_date=2026-03-12', 'records': 100, 'pages': 1}
+[2026-03-12T17:04:45.503+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2026-03-12T17:04:45.504+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=cybersecintel_p1_ingestion_landing, task_id=ingest_nvd, run_id=manual__2026-03-12T17:04:41+00:00, execution_date=20260312T170441, start_date=20260312T170442, end_date=20260312T170445
+[2026-03-12T17:04:45.548+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2026-03-12T17:04:45.568+0000] {taskinstance.py:3895} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-03-12T17:04:45.569+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

@@ -1,0 +1,45 @@
+{
+  "sources": [
+    {
+      "id": "cisa_kev",
+      "type": "structured",
+      "access_mode": "api_download",
+      "api_ready": true,
+      "cadence": "daily",
+      "ingestion_script": "python3 -m ingestion.batch.kev_ingest"
+    },
+    {
+      "id": "nvd_cve_api_v2",
+      "type": "semi_structured",
+      "access_mode": "rest_api",
+      "api_ready": true,
+      "cadence": "daily_or_2x_day",
+      "ingestion_script": "python3 -m ingestion.batch.nvd_ingest"
+    },
+    {
+      "id": "urlhaus_recent_csv",
+      "type": "semi_structured",
+      "access_mode": "feed_api",
+      "api_ready": true,
+      "cadence": "hourly_or_4x_day",
+      "ingestion_script": "python3 -m ingestion.batch.urlhaus_ingest"
+    },
+    {
+      "id": "cic_ids2017_csv",
+      "type": "structured",
+      "access_mode": "dataset_download",
+      "api_ready": false,
+      "cadence": "one_time_or_manual_refresh",
+      "ingestion_script": "python3 -m ingestion.imports.dataset_import --dataset cic_ids2017_csv --source-path <path>"
+    },
+    {
+      "id": "ctu13_pcap",
+      "type": "unstructured",
+      "access_mode": "dataset_download",
+      "api_ready": false,
+      "cadence": "one_time_or_manual_refresh",
+      "ingestion_script": "python3 -m ingestion.imports.dataset_import --dataset ctu13_pcap --source-path <path>"
+    }
+  ]
+}
+
