@@ -1,2 +1,12 @@
 build/*
 !build/.gitkeep
+!build/p1_2_delivery.pdf
+
+# Ignore accidental LaTeX build artifacts in src/ (editor-side builds)
+src/*.aux
+src/*.fdb_latexmk
+src/*.fls
+src/*.log
+src/*.out
+src/*.synctex.gz
+src/*.pdf
