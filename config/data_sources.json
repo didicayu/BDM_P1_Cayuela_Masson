@@ -25,6 +25,38 @@
       "ingestion_script": "python3 -m ingestion.batch.urlhaus_ingest"
     },
     {
+      "id": "first_epss_api_v1",
+      "type": "structured",
+      "access_mode": "rest_api",
+      "api_ready": true,
+      "cadence": "daily",
+      "ingestion_script": "python3 -m ingestion.batch.epss_ingest"
+    },
+    {
+      "id": "circl_vulnlookup_api",
+      "type": "semi_structured",
+      "access_mode": "rest_api",
+      "api_ready": true,
+      "cadence": "daily",
+      "ingestion_script": "python3 -m ingestion.batch.circl_vulnlookup_ingest"
+    },
+    {
+      "id": "abuse_ch_threatfox_api_v1",
+      "type": "semi_structured",
+      "access_mode": "api_post",
+      "api_ready": true,
+      "cadence": "daily_or_4x_day",
+      "ingestion_script": "python3 -m ingestion.batch.threatfox_ingest"
+    },
+    {
+      "id": "shodan_host_seeded_api",
+      "type": "semi_structured",
+      "access_mode": "rest_api",
+      "api_ready": true,
+      "cadence": "daily_seeded",
+      "ingestion_script": "python3 -m ingestion.batch.shodan_seeded_ingest"
+    },
+    {
       "id": "cic_ids2017_csv",
       "type": "structured",
       "access_mode": "dataset_download",
@@ -42,4 +74,3 @@
     }
   ]
 }
-

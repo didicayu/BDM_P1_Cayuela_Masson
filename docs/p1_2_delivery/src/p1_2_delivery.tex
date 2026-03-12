@@ -1,0 +1,194 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+\title{CyberSecIntel \\ P1.2 Delivery Report \\ Basic Ingestion and Landing}
+\author{D\'idac Cayuela \& Sindri Másson}
+\date{March 2026}
+
+\begin{document}
+\maketitle
+
+\section{Context and Objective}
+This document summarizes the implementation delivered for P1.2 (Basic Ingestion and Landing) of the CyberSecIntel project.
+It is aligned with:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{Project Statement - P1.pdf}
+  \item \texttt{Project Statement - Context.pdf}
+  \item previous team submission \texttt{BDM\_Project\_P1\_1.pdf}
+\end{itemize}
+
+Main objective for this increment:
+\begin{itemize}[leftmargin=1.5em]
+  \item automate ingestion from multiple cybersecurity sources,
+  \item land raw data with traceable metadata in object storage,
+  \item show clear API-vs-download source feasibility,
+  \item prepare a scalable base for trusted/exploitation layers in P2.
+\end{itemize}
+
+\section{How Ingestion Into Landing Is Organized}
+The ingestion layer is organized around two Airflow DAGs with clear responsibilities:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{\texttt{cybersecintel\_p1\_ingestion\_landing}}: dataset-import DAG for files staged in \texttt{data/raw\_downloads} (CIC CSV and CIC PCAP).
+  \item \textbf{\texttt{cybersecintel\_api\_expansion\_ingestion}}: non-local-source DAG for API/feeds (KEV, NVD, URLhaus, EPSS, CIRCL, ThreatFox, seeded Shodan) plus stream placeholder ingestion.
+\end{itemize}
+
+Landing writes are implemented through a storage abstraction with backend set to MinIO (\texttt{LANDING\_BACKEND=minio}).
+Data is stored directly in \texttt{s3://landing} (no local landing duplication).
+
+Operational rules currently implemented:
+\begin{itemize}[leftmargin=1.5em]
+  \item partitioning by \texttt{ingest\_date=YYYY-MM-DD} (and \texttt{hour=HH} for stream),
+  \item stable object naming per source/partition,
+  \item prefix cleanup before each source write on same partition to avoid accumulation of duplicate files,
+  \item sidecar metadata and per-source manifest update for traceability.
+\end{itemize}
+
+\section{Data Sources: Origin, Ingestion Method, and Intended Use}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}p{2.9cm} >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Source} & \textbf{Where it comes from} & \textbf{How we ingest it} & \textbf{How it will be used} \\
+\midrule
+CISA KEV & CISA public feed (JSON/CSV) & Scheduled API DAG pull to structured landing prefix & Vulnerability prioritization baseline (known exploited CVEs) \\
+NVD CVE v2 & NVD REST API & Incremental API pull with pagination controls & CVE technical attributes, enrichment, and filtering \\
+URLhaus recent & URLhaus public CSV feed & Scheduled API DAG pull to semi-structured prefix & IOC/intel context for malicious infrastructure \\
+FIRST EPSS & FIRST EPSS API & Paginated API pull to structured prefix & Exploit probability signal for risk ranking \\
+CIRCL Vulnerability-Lookup & CIRCL CVE API & API calls for top EPSS CVEs in current partition & Deep CVE enrichment payload for analysis \\
+abuse.ch ThreatFox & ThreatFox API (API key) & POST API pull with auth key & IOC feed used both for landing and Shodan seeding \\
+Shodan Host (seeded) & Shodan API (API key) & Host lookups for seed IPs from ThreatFox / env list & Exposure context on selected external IP indicators \\
+CIC-IDS2017 CSV & Downloaded dataset files & P1 DAG import from \texttt{data/raw\_downloads} & Structured historical traffic dataset for downstream analytics \\
+CIC-IDS2017 PCAP & Downloaded dataset files & P1 DAG import from \texttt{data/raw\_downloads} & Raw packet evidence for unstructured branch and later parsing \\
+\bottomrule
+\end{tabularx}
+
+\section{Data Source References and Manual Download Links}
+\subsection*{API and Feed References}
+\begin{itemize}[leftmargin=1.5em]
+  \item CISA KEV catalog: \url{https://www.cisa.gov/known-exploited-vulnerabilities-catalog}
+  \item NVD CVE API v2 docs: \url{https://nvd.nist.gov/developers/vulnerabilities}
+  \item URLhaus recent feed: \url{https://urlhaus.abuse.ch/downloads/csv_recent/}
+  \item FIRST EPSS API docs: \url{https://www.first.org/epss/api}
+  \item CIRCL Vulnerability-Lookup project/API: \url{https://www.vulnerability-lookup.org/}
+  \item ThreatFox community API docs: \url{https://threatfox.abuse.ch/api/}
+  \item Shodan API reference: \url{https://developer.shodan.io/api}
+\end{itemize}
+
+\subsection*{Manual Dataset Downloads (\texttt{data/raw\_downloads})}
+The following files are manually downloaded and placed under \texttt{data/raw\_downloads} so that the P1 dataset-import DAG can ingest them.
+
+\textbf{CIC-IDS2017 official dataset page:}
+\begin{itemize}[leftmargin=1.5em]
+  \item \url{https://www.unb.ca/cic/datasets/ids-2017.html}
+\end{itemize}
+
+\textbf{Direct CIC-IDS2017 download paths used in practice:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Base path: \url{http://205.174.165.80/CICDataset/CIC-IDS-2017/}
+  \item CSV folder: \url{http://205.174.165.80/CICDataset/CIC-IDS-2017/CSVs/}
+  \item PCAP folder: \url{http://205.174.165.80/CICDataset/CIC-IDS-2017/PCAPs/}
+\end{itemize}
+
+\textbf{Current files used by this repository workflow:}
+\begin{itemize}[leftmargin=1.5em]
+  \item \url{http://205.174.165.80/CICDataset/CIC-IDS-2017/CSVs/GeneratedLabelledFlows.zip}
+  \item \url{http://205.174.165.80/CICDataset/CIC-IDS-2017/CSVs/MachineLearningCSV.zip}
+  \item one or more PCAPs from \texttt{PCAPs/}, e.g.\\
+  \url{http://205.174.165.80/CICDataset/CIC-IDS-2017/PCAPs/Wednesday-workingHours.pcap}
+\end{itemize}
+
+\textbf{Optional additional unstructured source (CTU-13):}
+\begin{itemize}[leftmargin=1.5em]
+  \item CTU dataset overview/download entry: \url{https://www.stratosphereips.org/datasets-overview}
+\end{itemize}
+
+\section{Landing Zone Structure and Metadata}
+Main prefixes currently in use:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{structured/kev/}, \texttt{structured/epss/}, \texttt{structured/cic\_ids2017/}
+  \item \texttt{semi\_structured/nvd/}, \texttt{semi\_structured/urlhaus/}, \texttt{semi\_structured/circl\_vulnlookup/}, \texttt{semi\_structured/threatfox/}, \texttt{semi\_structured/shodan\_seeded/}
+  \item \texttt{unstructured/pcap/source=cic\_ids2017/}
+  \item \texttt{stream/ids\_alerts/}
+  \item \texttt{metadata/manifests/}
+\end{itemize}
+
+Each ingested artifact is accompanied by:
+\begin{itemize}[leftmargin=1.5em]
+  \item raw source-native payload,
+  \item \texttt{*.meta.json} with source URL, retrieval timestamp, checksum, size, and source-specific counters,
+  \item manifest entry (\texttt{metadata/manifests/ingest\_date=.../<source>.jsonl}) for auditability.
+\end{itemize}
+
+\section{Hot, Warm, and Cold Paths}
+\textbf{Cold path (implemented):}
+\begin{itemize}[leftmargin=1.5em]
+  \item persistent raw and semi-processed source data in MinIO landing,
+  \item partitioned by ingest date for reproducible backfills.
+\end{itemize}
+
+\textbf{Hot path (partially implemented):}
+\begin{itemize}[leftmargin=1.5em]
+  \item stream branch represented by \texttt{stream/ids\_alerts/} ingestion,
+  \item current source is synthetic IDS events placeholder while keeping the path ready for real sensor/replay input.
+\end{itemize}
+
+\textbf{Warm path (planned scaffold present):}
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{warm/stream\_aggregates/} prefix exists in landing setup,
+  \item aggregation/materialization logic is reserved for next iteration (trusted/warm transformations).
+\end{itemize}
+
+\section{Implemented Technologies and Components}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Orchestration}: Apache Airflow DAGs for scheduled ingestion.
+  \item \textbf{Object storage}: MinIO as landing zone (\texttt{s3://landing}).
+  \item \textbf{Messaging infra available}: Kafka + Zookeeper (currently prepared, stream placeholder active).
+  \item \textbf{Metadata/state}: Postgres for Airflow metadata; JSON sidecars + manifests for data lineage.
+  \item \textbf{Runtime}: Docker Compose stack for local reproducible execution.
+  \item \textbf{Ingestion code}: Python source-specific adapters under \texttt{ingestion/batch/} and dataset importer under \texttt{ingestion/imports/}.
+\end{itemize}
+
+\section{Updated Implementation Diagram (Placeholder)}
+\begin{figure}[h]
+  \centering
+  \IfFileExists{../assets/current_implementation_diagram.png}{
+    \includegraphics[width=\textwidth]{../assets/current_implementation_diagram.png}
+  }{
+    \fbox{
+      \parbox[c][6.0cm][c]{0.9\textwidth}{
+        \centering
+        \textbf{Placeholder for updated implementation diagram}\\[0.6em]
+        Add file at:\\
+        \texttt{docs/p1\_2\_delivery/assets/current\_implementation\_diagram.png}
+      }
+    }
+  }
+  \caption{Current implementation architecture (replace placeholder with updated team diagram).}
+\end{figure}
+
+\section{Current Limitations and Next Iteration}
+\begin{itemize}[leftmargin=1.5em]
+  \item Shodan ingestion depends on API plan permissions/credits (auth and quota constraints).
+  \item Hot path currently uses synthetic stream placeholder; next step is real replay/sensor input.
+  \item Warm path folder is prepared, but aggregate logic is not materialized yet.
+  \item Next iteration: trusted normalization (Silver), warm aggregates, and exploitation layer (relational + vector retrieval).
+\end{itemize}
+
+\end{document}

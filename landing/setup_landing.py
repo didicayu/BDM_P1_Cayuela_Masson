@@ -23,8 +23,12 @@ def setup_landing(base_dir: Path) -> list[str]:
     prefixes = [
         "structured/kev",
         "structured/cic_ids2017",
+        "structured/epss",
         "semi_structured/nvd",
         "semi_structured/urlhaus",
+        "semi_structured/circl_vulnlookup",
+        "semi_structured/threatfox",
+        "semi_structured/shodan_seeded",
         "stream/ids_alerts",
         "warm/stream_aggregates",
         "unstructured/pcap/source=cic_ids2017",

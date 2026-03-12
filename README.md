@@ -4,6 +4,7 @@ This repository contains a basic implementation for the P1.2 follow-up deliverab
 - automated ingestion from public cybersecurity data sources
 - landing-zone storage with organized prefixes and metadata manifests
 - orchestration through Airflow running in Docker
+- API-expansion ingestion for EPSS, CIRCL, ThreatFox, and seeded Shodan lookups
 
 ## Project Structure
 - `ingestion/`: ingestion scripts by type (`batch`, `imports`, `stream`)
@@ -30,11 +31,11 @@ Service endpoints:
 - Airflow UI: `http://localhost:8080`
 
 ## Intended Run Path
-1. Copy env and set your NVD key.
+1. Copy env and set API keys.
 
 ```bash
 cp .env.example .env
-# Edit .env and set NVD_API_KEY
+# Edit .env and set NVD_API_KEY, ABUSE_CH_API_KEY, SHODAN_API_KEY
 ```
 
 2. Start services and initialize Airflow.
@@ -52,13 +53,26 @@ docker compose exec airflow-webserver airflow dags unpause cybersecintel_p1_inge
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_p1_ingestion_landing
 ```
 
-4. View task logs in Airflow UI and validate objects in MinIO bucket `landing`.
+4. Trigger API expansion DAG `cybersecintel_api_expansion_ingestion`.
 
-What this DAG does:
+```bash
+docker compose exec airflow-webserver airflow dags unpause cybersecintel_api_expansion_ingestion
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_api_expansion_ingestion
+```
+
+5. View task logs in Airflow UI and validate objects in MinIO bucket `landing`.
+
+What `cybersecintel_p1_ingestion_landing` does:
 - setup landing-zone structure in object storage
-- ingest KEV, NVD, URLhaus directly to MinIO landing bucket
 - import CIC-IDS2017 CSV from `data/raw_downloads` (`.zip` and `.csv` supported)
 - import CIC-IDS2017 PCAP from `data/raw_downloads` when files are available
+
+What `cybersecintel_api_expansion_ingestion` does:
+- ingest KEV, NVD, URLhaus directly to MinIO landing bucket
+- ingest paginated EPSS data
+- ingest ThreatFox IOC feed (API key required)
+- enrich top EPSS CVEs with CIRCL Vulnerability-Lookup
+- query Shodan host API for seeded IP indicators (API key required)
 - generate synthetic stream events and store them in MinIO
 
 Storage note:
@@ -88,8 +102,12 @@ python3 -m ingestion.imports.dataset_import --dataset ctu13_pcap --source-path /
 
 ## Landing Layout
 - `s3://landing/structured/kev/ingest_date=YYYY-MM-DD/`
+- `s3://landing/structured/epss/ingest_date=YYYY-MM-DD/`
 - `s3://landing/semi_structured/nvd/ingest_date=YYYY-MM-DD/`
 - `s3://landing/semi_structured/urlhaus/ingest_date=YYYY-MM-DD/`
+- `s3://landing/semi_structured/circl_vulnlookup/ingest_date=YYYY-MM-DD/`
+- `s3://landing/semi_structured/threatfox/ingest_date=YYYY-MM-DD/`
+- `s3://landing/semi_structured/shodan_seeded/ingest_date=YYYY-MM-DD/`
 - `s3://landing/stream/ids_alerts/ingest_date=YYYY-MM-DD/hour=HH/`
 - `s3://landing/unstructured/pcap/source=.../ingest_date=YYYY-MM-DD/`
 - `s3://landing/metadata/manifests/ingest_date=YYYY-MM-DD/`

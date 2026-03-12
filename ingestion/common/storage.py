@@ -154,6 +154,39 @@ class LandingStorage:
             sha256=sha256_file(source_file),
         )
 
+    def exists(self, relative_path: Path | str) -> bool:
+        relative = Path(relative_path)
+        if self.backend == "local":
+            return (self.local_root / relative).exists()
+
+        self.ensure_bucket()
+        key = self._s3_key(relative)
+        try:
+            self._get_client().head_object(Bucket=self.bucket_name, Key=key)
+            return True
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code")
+            if code in {"NoSuchKey", "404", "NotFound"}:
+                return False
+            raise
+
+    def read_bytes(self, relative_path: Path | str) -> bytes:
+        relative = Path(relative_path)
+        if self.backend == "local":
+            return (self.local_root / relative).read_bytes()
+
+        self.ensure_bucket()
+        key = self._s3_key(relative)
+        response = self._get_client().get_object(Bucket=self.bucket_name, Key=key)
+        return response["Body"].read()
+
+    def read_json(self, relative_path: Path | str) -> dict[str, Any]:
+        payload = self.read_bytes(relative_path)
+        parsed = json.loads(payload.decode("utf-8"))
+        if not isinstance(parsed, dict):
+            raise ValueError(f"Expected JSON object in {relative_path}")
+        return parsed
+
     @staticmethod
     def _manifest_identity(entry: dict[str, Any]) -> str:
         relative = str(entry.get("relative_landing_path", "")).strip()

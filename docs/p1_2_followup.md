@@ -6,7 +6,7 @@ Repository root commands:
 
 ```bash
 cp .env.example .env
-# Fill NVD_API_KEY in .env
+# Fill NVD_API_KEY, ABUSE_CH_API_KEY, SHODAN_API_KEY in .env
 ```
 
 Start services:
@@ -26,6 +26,9 @@ Trigger DAG:
 ```bash
 docker compose exec airflow-webserver airflow dags unpause cybersecintel_p1_ingestion_landing
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_p1_ingestion_landing
+
+docker compose exec airflow-webserver airflow dags unpause cybersecintel_api_expansion_ingestion
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_api_expansion_ingestion
 ```
 
 Optional manual imports for non-API sources (fallback):
@@ -50,6 +53,10 @@ Objective for this follow-up:
 | CISA KEV | Structured | HTTP JSON/CSV feed | Yes | Implemented in `ingestion/batch/kev_ingest.py` |
 | NVD CVE v2 | Semi-structured | REST API | Yes | Implemented in `ingestion/batch/nvd_ingest.py` |
 | URLhaus recent | Semi-structured | CSV feed/API | Yes | Implemented in `ingestion/batch/urlhaus_ingest.py` |
+| FIRST EPSS | Structured | REST API | Yes | Implemented in `ingestion/batch/epss_ingest.py` |
+| CIRCL Vulnerability-Lookup | Semi-structured | REST API | Yes | Implemented in `ingestion/batch/circl_vulnlookup_ingest.py` |
+| abuse.ch ThreatFox | Semi-structured | API (POST) | Yes (key) | Implemented in `ingestion/batch/threatfox_ingest.py` |
+| Shodan Host | Semi-structured | REST API | Yes (key) | Implemented in `ingestion/batch/shodan_seeded_ingest.py` |
 | CIC-IDS2017 | Structured (large) | Dataset download | No | Implemented via import utility (`dataset_import.py`) |
 | CTU-13 PCAP | Unstructured | Dataset download | No | Implemented via import utility (`dataset_import.py`) |
 
@@ -66,14 +73,29 @@ Implemented components:
 - `ingestion/batch/urlhaus_ingest.py`
   - fetches recent URLhaus CSV feed
   - stores raw feed with row count metadata
+- `ingestion/batch/epss_ingest.py`
+  - fetches paginated EPSS records
+  - stores raw API pages + metadata + manifest entries
+- `ingestion/batch/circl_vulnlookup_ingest.py`
+  - takes top EPSS CVEs for current ingest date
+  - fetches CVE detail payloads from CIRCL and stores JSONL + metadata
+- `ingestion/batch/threatfox_ingest.py`
+  - fetches IOC payload from ThreatFox API using `ABUSE_CH_API_KEY`
+  - stores raw payload + metadata breakdown
+- `ingestion/batch/shodan_seeded_ingest.py`
+  - extracts seed IPs from ThreatFox output for current ingest date
+  - queries seeded host details from Shodan using `SHODAN_API_KEY`
 - `ingestion/imports/dataset_import.py`
   - ingests downloaded CSV/PCAP files to landing prefixes
   - supports CIC zipped CSV downloads by extracting CSV files directly from `.zip`
 - `ingestion/stream/synthetic_ids_stream.py`
   - lightweight synthetic stream placeholder for hot-path progress
 - `orchestration/airflow/dags/p1_ingestion_landing_dag.py`
-  - canonical orchestration path for P1.2
-  - coordinates setup, API ingestion, dataset import, and synthetic stream generation
+  - raw-download-oriented orchestration path for P1.2
+  - coordinates setup + dataset imports from `data/raw_downloads`
+- `orchestration/airflow/dags/api_expansion_ingestion_dag.py`
+  - dedicated non-raw-source DAG for KEV/NVD/URLhaus/EPSS/CIRCL/ThreatFox/Shodan + synthetic stream
+  - isolates API quota/failure behavior from baseline P1.2 DAG
 
 ## 4. Landing Zone Implementation
 Landing-zone setup script:
@@ -82,8 +104,12 @@ Landing-zone setup script:
 Implemented landing organization:
 - `s3://landing/structured/kev/ingest_date=YYYY-MM-DD/`
 - `s3://landing/structured/cic_ids2017/ingest_date=YYYY-MM-DD/`
+- `s3://landing/structured/epss/ingest_date=YYYY-MM-DD/`
 - `s3://landing/semi_structured/nvd/ingest_date=YYYY-MM-DD/`
 - `s3://landing/semi_structured/urlhaus/ingest_date=YYYY-MM-DD/`
+- `s3://landing/semi_structured/circl_vulnlookup/ingest_date=YYYY-MM-DD/`
+- `s3://landing/semi_structured/threatfox/ingest_date=YYYY-MM-DD/`
+- `s3://landing/semi_structured/shodan_seeded/ingest_date=YYYY-MM-DD/`
 - `s3://landing/stream/ids_alerts/ingest_date=YYYY-MM-DD/hour=HH/`
 - `s3://landing/warm/stream_aggregates/`
 - `s3://landing/unstructured/pcap/source=cic_ids2017/ingest_date=YYYY-MM-DD/`
