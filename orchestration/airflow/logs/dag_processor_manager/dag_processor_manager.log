@@ -8845,3 +8845,95 @@ File Path                                           PID  Runtime      # DAGs    
 /opt/airflow/dags/api_expansion_ingestion_dag.py   5315  0.00s             1           0  0.08s           2026-03-12T22:49:53                      12
 /opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.08s           2026-03-12T22:50:04                      12
 ================================================================================
+[2026-03-12T22:50:53.962+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.07s           2026-03-12T22:50:34                      12
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5325  0.01s             1           0  0.07s           2026-03-12T22:50:23                      12
+================================================================================
+[2026-03-12T22:51:24.331+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5335  0.01s             1           0  0.08s           2026-03-12T22:50:54                      12
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.08s           2026-03-12T22:51:05                      12
+================================================================================
+[2026-03-12T22:51:54.664+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.08s           2026-03-12T22:51:35                      12
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5345  0.01s             1           0  0.08s           2026-03-12T22:51:24                      12
+================================================================================
+[2026-03-12T22:52:25.037+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5355  0.00s             1           0  0.08s           2026-03-12T22:51:54                      12
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.08s           2026-03-12T22:52:05                      12
+================================================================================
+[2026-03-12T22:52:55.376+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.07s           2026-03-12T22:52:36                      12
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5365  0.01s             1           0  0.07s           2026-03-12T22:52:25                      12
+================================================================================
+[2026-03-12T22:53:25.730+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.09s           2026-03-12T22:53:06                      12
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5375  0.01s             1           0  0.08s           2026-03-12T22:52:55                      12
+================================================================================
+[2026-03-12T22:53:56.099+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.09s           2026-03-12T22:53:36                      12
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5385  0.01s             1           0  0.08s           2026-03-12T22:53:25                      12
+================================================================================
+[2026-03-12T22:54:15.346+0000] {manager.py:821} INFO - Searching for files in /opt/airflow/dags
+[2026-03-12T22:54:15.356+0000] {manager.py:824} INFO - There are 2 files in /opt/airflow/dags
+[2026-03-12T22:54:26.473+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5395  0.00s             1           0  0.09s           2026-03-12T22:53:56                      12
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.09s           2026-03-12T22:54:07                      12
+================================================================================
+[2026-03-12T22:54:56.783+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5405  0.01s             1           0  0.07s           2026-03-12T22:54:26                      12
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.07s           2026-03-12T22:54:37                      12
+================================================================================
+[2026-03-12T22:55:27.187+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                           PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+------------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/api_expansion_ingestion_dag.py   5415  0.01s             1           0  0.11s           2026-03-12T22:54:56                      12
+/opt/airflow/dags/p1_ingestion_landing_dag.py                              1           0  0.10s           2026-03-12T22:55:08                      12
+================================================================================
