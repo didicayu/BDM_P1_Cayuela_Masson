@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from ingestion.common.http_utils import fetch_bytes
-from ingestion.common.landing_utils import ingest_date_str, utc_now
+from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
 
 SOURCE_ID = "abuse_ch_threatfox_api_v1"
@@ -52,10 +52,17 @@ def run(
 ) -> dict[str, str | int]:
     api_key = os.getenv("ABUSE_CH_API_KEY", "").strip()
     if not api_key:
-        raise RuntimeError("ABUSE_CH_API_KEY is required for ThreatFox ingestion.")
+        return {
+            "source": SOURCE_ID,
+            "landing_path": "",
+            "ioc_count": 0,
+            "skipped": 1,
+            "reason": "missing_api_key",
+        }
 
-    now = utc_now()
-    ingest_date = ingest_date_str(now)
+    partition_at = partition_now()
+    retrieved_at = utc_now()
+    ingest_date = ingest_date_str(partition_at)
     storage = LandingStorage.from_env(base_dir)
 
     relative_dir = Path("semi_structured") / "threatfox" / f"ingest_date={ingest_date}"
@@ -98,7 +105,7 @@ def run(
     metadata = {
         "source_id": SOURCE_ID,
         "source_url": SOURCE_URL,
-        "retrieved_at_utc": now.isoformat(),
+        "retrieved_at_utc": retrieved_at.isoformat(),
         "landing_path": raw_written.landing_path,
         "relative_landing_path": raw_written.relative_path,
         "sha256": raw_written.sha256,
@@ -131,6 +138,9 @@ def main() -> int:
         timeout_seconds=args.timeout_seconds,
         retries=args.retries,
     )
+    if result.get("skipped"):
+        print(f"[{result['source']}] Skipped ({result['reason']})")
+        return 0
     print(
         f"[{result['source']}] Ingested {result['ioc_count']} IOC records "
         f"to {result['landing_path']}"

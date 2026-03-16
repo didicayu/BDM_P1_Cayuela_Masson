@@ -9,9 +9,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from botocore.client import Config
-from botocore.exceptions import ClientError
-import boto3
+try:
+    from botocore.client import Config
+    from botocore.exceptions import ClientError
+    import boto3
+except ModuleNotFoundError:  # pragma: no cover - optional for local-only usage
+    Config = None  # type: ignore[assignment]
+    ClientError = Exception  # type: ignore[assignment,misc]
+    boto3 = None  # type: ignore[assignment]
 
 from ingestion.common.landing_utils import ensure_dir, sha256_bytes, sha256_file
 
@@ -65,6 +70,8 @@ class LandingStorage:
         return f"s3://{self.bucket_name}/{key}"
 
     def _get_client(self):
+        if boto3 is None or Config is None:
+            raise RuntimeError("boto3 and botocore are required for the MinIO backend.")
         if self._client is None:
             self._client = boto3.client(
                 "s3",

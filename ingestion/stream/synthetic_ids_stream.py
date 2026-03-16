@@ -13,7 +13,7 @@ import random
 import time
 from pathlib import Path
 
-from ingestion.common.landing_utils import ingest_date_str, utc_now
+from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
 
 
@@ -52,9 +52,9 @@ def generate_event(now: dt.datetime) -> dict[str, str | int]:
 
 
 def run(base_dir: Path, events: int, interval_ms: int) -> Path:
-    now = utc_now()
-    ingest_date = ingest_date_str(now)
-    hour = now.strftime("%H")
+    partition_at = partition_now()
+    ingest_date = ingest_date_str(partition_at)
+    hour = partition_at.strftime("%H")
     storage = LandingStorage.from_env(base_dir)
 
     output_relative = (

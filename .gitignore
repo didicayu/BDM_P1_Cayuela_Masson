@@ -4,7 +4,7 @@ __pycache__/
 .env
 .venv/
 data/landing/
-data/raw_downloads/
 data/minio/
 data/postgres/
 .DS_Store
+orchestration/airflow/logs/

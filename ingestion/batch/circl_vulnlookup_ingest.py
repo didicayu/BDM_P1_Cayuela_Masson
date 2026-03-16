@@ -10,7 +10,7 @@ import time
 from typing import Any
 
 from ingestion.common.http_utils import fetch_bytes
-from ingestion.common.landing_utils import ingest_date_str, utc_now
+from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
 
 SOURCE_ID = "circl_vulnlookup_api"
@@ -119,8 +119,9 @@ def run(
     timeout_seconds: int,
     retries: int,
 ) -> dict[str, str | int]:
-    now = utc_now()
-    ingest_date = ingest_date_str(now)
+    partition_at = partition_now()
+    retrieved_at = utc_now()
+    ingest_date = ingest_date_str(partition_at)
     storage = LandingStorage.from_env(base_dir)
 
     selected_cves = _load_top_epss_cves(
@@ -131,7 +132,7 @@ def run(
     )
     if not selected_cves:
         raise RuntimeError(
-            "No EPSS CVE candidates found for current ingest_date. Run EPSS ingestion first."
+            "No EPSS CVE candidates found for the current logical ingest_date. Run EPSS ingestion first."
         )
 
     relative_dir = Path("semi_structured") / "circl_vulnlookup" / f"ingest_date={ingest_date}"
@@ -198,7 +199,7 @@ def run(
     metadata = {
         "source_id": SOURCE_ID,
         "source_url": SOURCE_URL,
-        "retrieved_at_utc": now.isoformat(),
+        "retrieved_at_utc": retrieved_at.isoformat(),
         "landing_path": raw_written.landing_path,
         "relative_landing_path": raw_written.relative_path,
         "sha256": raw_written.sha256,

@@ -57,20 +57,12 @@
       "ingestion_script": "python3 -m ingestion.batch.shodan_seeded_ingest"
     },
     {
-      "id": "cic_ids2017_csv",
-      "type": "structured",
-      "access_mode": "dataset_download",
-      "api_ready": false,
-      "cadence": "one_time_or_manual_refresh",
-      "ingestion_script": "python3 -m ingestion.imports.dataset_import --dataset cic_ids2017_csv --source-path <path>"
-    },
-    {
-      "id": "ctu13_pcap",
+      "id": "ctu13_remote_pcap",
       "type": "unstructured",
-      "access_mode": "dataset_download",
+      "access_mode": "remote_directory_discovery",
       "api_ready": false,
-      "cadence": "one_time_or_manual_refresh",
-      "ingestion_script": "python3 -m ingestion.imports.dataset_import --dataset ctu13_pcap --source-path <path>"
+      "cadence": "daily_discovery_or_manual_full_run",
+      "ingestion_script": "python3 -m ingestion.datasets.remote_pcap_ingest --profile subset"
     }
   ]
 }

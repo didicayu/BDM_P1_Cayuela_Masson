@@ -1,0 +1,52 @@
+{
+  "root_index_url": "https://mcfp.felk.cvut.cz/publicDatasets/",
+  "scenario_pattern": "^CTU-Malware-Capture-Botnet-(\\d+)/$",
+  "scenario_range": {
+    "start": 42,
+    "end": 54
+  },
+  "profiles": {
+    "subset": {
+      "mode": "first_successful",
+      "selection_rules": [
+        {
+          "label": "subset_botnet_capture_pcap",
+          "pattern": "^botnet-capture-.*\\.pcap$"
+        },
+        {
+          "label": "subset_generic_pcap",
+          "pattern": "^.*\\.pcap$"
+        },
+        {
+          "label": "subset_pcap_bz2",
+          "pattern": "^.*\\.pcap\\.bz2$"
+        },
+        {
+          "label": "subset_truncated_pcap_bz2",
+          "pattern": "^.*\\.truncated\\.pcap\\.bz2$"
+        }
+      ]
+    },
+    "full": {
+      "mode": "all",
+      "selection_rules": [
+        {
+          "label": "full_truncated_pcap_bz2",
+          "pattern": "^.*\\.truncated\\.pcap\\.bz2$"
+        },
+        {
+          "label": "full_pcap_bz2",
+          "pattern": "^.*\\.pcap\\.bz2$"
+        },
+        {
+          "label": "full_botnet_capture_pcap",
+          "pattern": "^botnet-capture-.*\\.pcap$"
+        },
+        {
+          "label": "full_generic_pcap",
+          "pattern": "^.*\\.pcap$"
+        }
+      ]
+    }
+  }
+}

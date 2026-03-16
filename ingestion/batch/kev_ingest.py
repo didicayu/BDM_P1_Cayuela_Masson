@@ -9,6 +9,7 @@ from pathlib import Path
 from ingestion.common.http_utils import fetch_bytes
 from ingestion.common.landing_utils import (
     ingest_date_str,
+    partition_now,
     utc_now,
 )
 from ingestion.common.storage import LandingStorage
@@ -59,8 +60,9 @@ def fetch_kev(timeout_seconds: int, retries: int) -> tuple[bytes, str]:
 
 
 def run(base_dir: Path, timeout_seconds: int, retries: int) -> dict[str, str | int]:
-    now = utc_now()
-    ingest_date = ingest_date_str(now)
+    partition_at = partition_now()
+    retrieved_at = utc_now()
+    ingest_date = ingest_date_str(partition_at)
     storage = LandingStorage.from_env(base_dir)
 
     payload, source_url = fetch_kev(timeout_seconds=timeout_seconds, retries=retries)
@@ -80,7 +82,7 @@ def run(base_dir: Path, timeout_seconds: int, retries: int) -> dict[str, str | i
     metadata = {
         "source_id": SOURCE_ID,
         "source_url": source_url,
-        "retrieved_at_utc": now.isoformat(),
+        "retrieved_at_utc": retrieved_at.isoformat(),
         "landing_path": raw_written.landing_path,
         "relative_landing_path": raw_written.relative_path,
         "sha256": raw_written.sha256,

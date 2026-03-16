@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -13,13 +14,42 @@ def utc_now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+def airflow_context_now() -> dt.datetime | None:
+    for env_name in ("AIRFLOW_CTX_LOGICAL_DATE", "AIRFLOW_CTX_EXECUTION_DATE"):
+        raw = os.getenv(env_name, "").strip()
+        if not raw:
+            continue
+
+        normalized = raw.replace("Z", "+00:00")
+        try:
+            value = dt.datetime.fromisoformat(normalized)
+        except ValueError:
+            continue
+
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=dt.timezone.utc)
+        return value.astimezone(dt.timezone.utc)
+    return None
+
+
+def partition_now(now: dt.datetime | None = None) -> dt.datetime:
+    if now is not None:
+        value = now
+    else:
+        value = airflow_context_now() or utc_now()
+
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=dt.timezone.utc)
+    return value.astimezone(dt.timezone.utc)
+
+
 def utc_timestamp_str(now: dt.datetime | None = None) -> str:
     value = now or utc_now()
     return value.strftime("%Y%m%dT%H%M%SZ")
 
 
 def ingest_date_str(now: dt.datetime | None = None) -> str:
-    value = now or utc_now()
+    value = partition_now(now)
     return value.strftime("%Y-%m-%d")
 
 

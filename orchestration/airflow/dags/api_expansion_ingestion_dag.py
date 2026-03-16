@@ -1,4 +1,4 @@
-"""Airflow DAG for EPSS/CIRCL/ThreatFox/Shodan API expansion ingestion."""
+"""Airflow DAG for public API/feed ingestion and stream scaffolding."""
 
 from __future__ import annotations
 
@@ -103,7 +103,7 @@ def generate_synthetic_stream_task() -> str:
 
 with DAG(
     dag_id="cybersecintel_api_expansion_ingestion",
-    description="Non-raw-source ingestion for KEV/NVD/URLhaus/EPSS/CIRCL/ThreatFox/Shodan.",
+    description="Public API/feed ingestion for KEV/NVD/URLhaus/EPSS/CIRCL/ThreatFox/Shodan plus stream scaffold.",
     start_date=datetime(2026, 3, 12),
     schedule="15 8 * * *",
     catchup=False,

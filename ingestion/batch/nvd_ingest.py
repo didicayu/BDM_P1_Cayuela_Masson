@@ -12,6 +12,7 @@ from pathlib import Path
 from ingestion.common.http_utils import build_url, fetch_bytes
 from ingestion.common.landing_utils import (
     ingest_date_str,
+    partition_now,
     utc_now,
 )
 from ingestion.common.storage import LandingStorage
@@ -80,9 +81,10 @@ def run(
     retries: int,
     sleep_seconds: float,
 ) -> dict[str, str | int]:
-    now = utc_now()
-    ingest_date = ingest_date_str(now)
-    start_window = now - dt.timedelta(hours=window_hours)
+    partition_at = partition_now()
+    retrieved_at = utc_now()
+    ingest_date = ingest_date_str(partition_at)
+    start_window = partition_at - dt.timedelta(hours=window_hours)
     storage = LandingStorage.from_env(base_dir)
 
     relative_dir = Path("semi_structured") / "nvd" / f"ingest_date={ingest_date}"
@@ -103,7 +105,7 @@ def run(
             "startIndex": start_index,
             "resultsPerPage": results_per_page,
             "lastModStartDate": nvd_time(start_window),
-            "lastModEndDate": nvd_time(now),
+            "lastModEndDate": nvd_time(partition_at),
         }
         url = build_url(SOURCE_URL, params=params)
         payload = fetch_bytes(
@@ -128,7 +130,7 @@ def run(
             "source_id": SOURCE_ID,
             "source_url": SOURCE_URL,
             "request_url": url,
-            "retrieved_at_utc": now.isoformat(),
+            "retrieved_at_utc": retrieved_at.isoformat(),
             "landing_path": raw_written.landing_path,
             "relative_landing_path": raw_written.relative_path,
             "sha256": raw_written.sha256,

@@ -22,7 +22,6 @@ def build_parser() -> argparse.ArgumentParser:
 def setup_landing(base_dir: Path) -> list[str]:
     prefixes = [
         "structured/kev",
-        "structured/cic_ids2017",
         "structured/epss",
         "semi_structured/nvd",
         "semi_structured/urlhaus",
@@ -31,7 +30,6 @@ def setup_landing(base_dir: Path) -> list[str]:
         "semi_structured/shodan_seeded",
         "stream/ids_alerts",
         "warm/stream_aggregates",
-        "unstructured/pcap/source=cic_ids2017",
         "unstructured/pcap/source=ctu13",
         "metadata/manifests",
     ]

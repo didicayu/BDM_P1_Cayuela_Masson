@@ -12,7 +12,7 @@ import time
 from typing import Any
 
 from ingestion.common.http_utils import build_url, fetch_bytes
-from ingestion.common.landing_utils import ingest_date_str, utc_now
+from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
 
 SOURCE_ID = "shodan_host_seeded_api"
@@ -128,12 +128,38 @@ def run(
     timeout_seconds: int,
     retries: int,
 ) -> dict[str, str | int]:
+    shodan_enabled = os.getenv("SHODAN_ENABLED", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not shodan_enabled:
+        return {
+            "source": SOURCE_ID,
+            "landing_path": "",
+            "seed_count": 0,
+            "successful_lookups": 0,
+            "failed_lookups": 0,
+            "skipped": 1,
+            "reason": "disabled",
+        }
+
     api_key = os.getenv("SHODAN_API_KEY", "").strip()
     if not api_key:
-        raise RuntimeError("SHODAN_API_KEY is required for seeded Shodan ingestion.")
+        return {
+            "source": SOURCE_ID,
+            "landing_path": "",
+            "seed_count": 0,
+            "successful_lookups": 0,
+            "failed_lookups": 0,
+            "skipped": 1,
+            "reason": "missing_api_key",
+        }
 
-    now = utc_now()
-    ingest_date = ingest_date_str(now)
+    partition_at = partition_now()
+    retrieved_at = utc_now()
+    ingest_date = ingest_date_str(partition_at)
     storage = LandingStorage.from_env(base_dir)
 
     threatfox_relative = (
@@ -152,9 +178,15 @@ def run(
     unique_candidates = list(dict.fromkeys(combined_candidates))
     selected_ips = unique_candidates[:max_indicators_per_run]
     if not selected_ips:
-        raise RuntimeError(
-            "No Shodan seed indicators available. Provide ThreatFox data or SHODAN_SEED_IPS."
-        )
+        return {
+            "source": SOURCE_ID,
+            "landing_path": "",
+            "seed_count": 0,
+            "successful_lookups": 0,
+            "failed_lookups": 0,
+            "skipped": 1,
+            "reason": "no_seed_indicators",
+        }
 
     relative_dir = Path("semi_structured") / "shodan_seeded" / f"ingest_date={ingest_date}"
     storage.clear_prefix(relative_dir)
@@ -175,7 +207,15 @@ def run(
         except Exception as exc:
             status_code = _extract_http_status(exc)
             if status_code in {401, 403}:
-                raise RuntimeError(f"Shodan authorization failure for {ip_value}: {exc}") from exc
+                return {
+                    "source": SOURCE_ID,
+                    "landing_path": "",
+                    "seed_count": len(selected_ips),
+                    "successful_lookups": 0,
+                    "failed_lookups": 0,
+                    "skipped": 1,
+                    "reason": "authorization_failure",
+                }
             failed_requests.append(
                 {
                     "ip": ip_value,
@@ -218,7 +258,7 @@ def run(
     metadata = {
         "source_id": SOURCE_ID,
         "source_url": SOURCE_URL,
-        "retrieved_at_utc": now.isoformat(),
+        "retrieved_at_utc": retrieved_at.isoformat(),
         "landing_path": raw_written.landing_path,
         "relative_landing_path": raw_written.relative_path,
         "sha256": raw_written.sha256,
@@ -257,6 +297,9 @@ def main() -> int:
         timeout_seconds=args.timeout_seconds,
         retries=args.retries,
     )
+    if result.get("skipped"):
+        print(f"[{result['source']}] Skipped ({result['reason']})")
+        return 0
     print(
         f"[{result['source']}] Queried {result['seed_count']} seeded IP(s), "
         f"success={result['successful_lookups']}, failed={result['failed_lookups']}"
