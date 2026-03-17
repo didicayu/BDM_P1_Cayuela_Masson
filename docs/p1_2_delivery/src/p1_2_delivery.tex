@@ -11,6 +11,7 @@
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{float}
 
 \hypersetup{
   colorlinks=true,
@@ -187,6 +188,13 @@ Each ingested artifact is accompanied by:
   \item \textbf{Ingestion code}: Python source-specific adapters under \texttt{ingestion/batch/}.
   \item \textbf{Dataset branch}: CTU discovery/downloader under \texttt{ingestion/datasets/}; stream scaffold under \texttt{ingestion/stream/}.
 \end{itemize}
+
+\section{Current Implementation Diagram}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{../assets/BDM_P1.1.drawio.png}
+  \caption{Current implementation architecture for the P1.2 ingestion and landing pipeline.}
+\end{figure}
 
 \section{Current Limitations and Next Iteration}
 \begin{itemize}[leftmargin=1.5em]
