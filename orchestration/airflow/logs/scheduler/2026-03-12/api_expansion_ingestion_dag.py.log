@@ -3560,3 +3560,10 @@
 [2026-03-12T22:55:27.238+0000] {logging_mixin.py:190} INFO - [2026-03-12T22:55:27.238+0000] {dag.py:3239} INFO - Sync 1 DAGs
 [2026-03-12T22:55:27.254+0000] {logging_mixin.py:190} INFO - [2026-03-12T22:55:27.254+0000] {dag.py:4180} INFO - Setting next_dagrun for cybersecintel_api_expansion_ingestion to 2026-03-12 08:15:00+00:00, run_after=2026-03-13 08:15:00+00:00
 [2026-03-12T22:55:27.263+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/api_expansion_ingestion_dag.py took 0.070 seconds
+[2026-03-12T22:55:57.569+0000] {processor.py:186} INFO - Started process (PID=5425) to work on /opt/airflow/dags/api_expansion_ingestion_dag.py
+[2026-03-12T22:55:57.570+0000] {processor.py:914} INFO - Processing file /opt/airflow/dags/api_expansion_ingestion_dag.py for tasks to queue
+[2026-03-12T22:55:57.572+0000] {logging_mixin.py:190} INFO - [2026-03-12T22:55:57.572+0000] {dagbag.py:588} INFO - Filling up the DagBag from /opt/airflow/dags/api_expansion_ingestion_dag.py
+[2026-03-12T22:55:57.583+0000] {processor.py:925} INFO - DAG(s) 'cybersecintel_api_expansion_ingestion' retrieved from /opt/airflow/dags/api_expansion_ingestion_dag.py
+[2026-03-12T22:55:57.607+0000] {logging_mixin.py:190} INFO - [2026-03-12T22:55:57.607+0000] {dag.py:3239} INFO - Sync 1 DAGs
+[2026-03-12T22:55:57.622+0000] {logging_mixin.py:190} INFO - [2026-03-12T22:55:57.622+0000] {dag.py:4180} INFO - Setting next_dagrun for cybersecintel_api_expansion_ingestion to 2026-03-12 08:15:00+00:00, run_after=2026-03-13 08:15:00+00:00
+[2026-03-12T22:55:57.631+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/api_expansion_ingestion_dag.py took 0.068 seconds

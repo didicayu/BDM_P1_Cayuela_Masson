@@ -75,22 +75,42 @@ Operational rules currently implemented:
   \item per-source manifest maintenance for traceability and reruns.
 \end{itemize}
 
-\section{Data Sources: Origin, Ingestion Method, and Intended Use}
+\section{Data Sources: Origin, Type, and Role}
+For clarity, the main acronyms used in this section are expanded here: CISA = Cybersecurity and Infrastructure Security Agency; KEV = Known Exploited Vulnerabilities; NVD = National Vulnerability Database; CVE = Common Vulnerabilities and Exposures; FIRST = Forum of Incident Response and Security Teams; EPSS = Exploit Prediction Scoring System; CIRCL = Computer Incident Response Center Luxembourg; IOC = indicator of compromise; CTU = Czech Technical University; and PCAP = packet capture.
+
+The selected source mix intentionally combines structured vulnerability intelligence, semi-structured enrichment and IOC feeds, and unstructured packet captures. CISA KEV, NVD, and FIRST EPSS provide stable identifiers and prioritization signals that are immediately useful in the cold path and later suitable for warm aggregates and ranking models. URLhaus, CIRCL, ThreatFox, and optionally Shodan add semi-structured context about malicious infrastructure, vulnerability details, and external exposure, which is more useful once correlated in the warm path. CTU-13 contributes raw packet evidence to the cold path and provides realistic material for future hot-path replay, while the current hot path remains represented by the synthetic IDS event producer delivered in P1.2.
+
 \renewcommand{\arraystretch}{1.2}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.0cm} >{\raggedright\arraybackslash}p{2.0cm} >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Source} & \textbf{Where it comes from} & \textbf{How we ingest it} & \textbf{How it will be used} \\
+\textbf{Source and origin} & \textbf{Type} & \textbf{How we ingest it} & \textbf{What it provides} \\
 \midrule
-CISA KEV & CISA public feed (JSON/CSV) & Scheduled API pull to structured landing prefix & Vulnerability prioritization baseline (known exploited CVEs) \\
-NVD CVE v2 & NVD REST API & Incremental API pull with pagination controls & CVE technical attributes, enrichment, and filtering \\
-URLhaus recent & URLhaus public CSV feed & Scheduled feed/API pull to semi-structured prefix & IOC context for malicious infrastructure \\
-FIRST EPSS & FIRST EPSS API & Paginated API pull to structured prefix & Exploit probability signal for risk ranking \\
-CIRCL Vulnerability-Lookup & CIRCL CVE API & API calls for top EPSS CVEs in current partition & Deeper CVE enrichment payload for analysis \\
-abuse.ch ThreatFox & ThreatFox API (API key) & Optional API pull with auth key; skips cleanly when key is absent & IOC feed used for additional enrichment and potential Shodan seeding \\
-Shodan Host (seeded) & Shodan API (API key) & Optional host lookups when explicitly enabled & Exposure context on selected external IP indicators \\
-CTU-13 remote PCAP artifacts & CTU scenario directories hosted on the public CVUT dataset server & Automatic remote discovery and download from scenario folders \texttt{42..54} using profile-based artifact selection rules & Unstructured raw packet evidence for the dataset branch and future replay input \\
+CISA KEV from the CISA Known Exploited Vulnerabilities feed & Structured & Scheduled API pull to structured landing prefix & Canonical list of already exploited CVEs, used as a strong cold-path prioritization baseline and later for warm-path ranking logic. \\
+NVD CVE v2 from the National Vulnerability Database API & Semi-structured & Incremental API pull with pagination controls & Detailed CVE metadata, descriptions, scores, configurations, and references that support enrichment, filtering, and later normalization. \\
+URLhaus recent from the URLhaus public CSV feed & Semi-structured & Scheduled feed/API pull to semi-structured prefix & IOC context about malicious URLs and related infrastructure, useful as enrichment material and future warm-path correlation input. \\
+FIRST EPSS from the FIRST Exploit Prediction Scoring System API & Structured & Paginated API pull to structured prefix & Stable exploit-likelihood scores for CVEs, used to prioritize which vulnerabilities deserve deeper enrichment and later aggregation. \\
+CIRCL Vulnerability-Lookup from the CIRCL vulnerability API & Semi-structured & API calls for top EPSS CVEs in current partition & Additional CVE-level enrichment, adding related vulnerability context beyond the core NVD records. \\
+abuse.ch ThreatFox from the ThreatFox API & Semi-structured & Optional API pull with auth key; skips cleanly when key is absent & IOC feed with malicious indicators that enrich the cold path and can also seed later infrastructure lookups. \\
+Shodan Host from the seeded Shodan API workflow & Semi-structured & Optional host lookups when explicitly enabled & Targeted exposure details for selected external IP indicators, used as optional enrichment rather than a primary discovery source. \\
+CTU-13 remote PCAP artifacts from the public CTU dataset host & Unstructured & Automatic remote discovery and profile-based download from scenarios \texttt{42..54} & Raw packet evidence for the cold path and realistic artifacts for future replay into the hot path. \\
 \bottomrule
 \end{tabularx}
+
+\section{Official Source References}
+The implementation uses the following official pages and API/feed endpoints as source references:
+\begin{itemize}[leftmargin=1.5em]
+  \item \href{https://www.cisa.gov/known-exploited-vulnerabilities}{CISA KEV catalog page}
+  \item \href{https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json}{CISA KEV JSON feed endpoint}
+  \item \href{https://nvd.nist.gov/developers/vulnerabilities}{NVD developer documentation}
+  \item \href{https://services.nvd.nist.gov/rest/json/cves/2.0}{NVD CVE API v2 endpoint}
+  \item \href{https://urlhaus.abuse.ch/downloads/csv_recent/}{URLhaus recent CSV feed}
+  \item \href{https://www.first.org/epss/api}{FIRST EPSS API documentation}
+  \item \href{https://vulnerability.circl.lu/documentation}{CIRCL Vulnerability-Lookup documentation}
+  \item \href{https://threatfox.abuse.ch/api/}{ThreatFox API documentation}
+  \item \href{https://developer.shodan.io/api}{Shodan developer API documentation}
+  \item \href{https://www.stratosphereips.org/datasets-ctu13}{CTU-13 reference page}
+  \item \href{https://mcfp.felk.cvut.cz/publicDatasets/}{CTU scenario artifact host}
+\end{itemize}
 
 \section{Automatic CTU Artifact Discovery}
 The unstructured branch is referenced through the official Stratosphere IPS CTU-13 page, but the actual machine-accessible artifacts are hosted on the public CVUT dataset server.
