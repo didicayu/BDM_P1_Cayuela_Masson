@@ -63,6 +63,14 @@
       "api_ready": false,
       "cadence": "daily_discovery_or_manual_full_run",
       "ingestion_script": "python3 -m ingestion.datasets.remote_pcap_ingest --profile subset"
+    },
+    {
+      "id": "ctu13_pcap_replay",
+      "type": "semi_structured",
+      "access_mode": "offline_replay_from_landed_pcap",
+      "api_ready": false,
+      "cadence": "manual_or_guarded_airflow_trigger",
+      "ingestion_script": "python3 -m ingestion.replay.suricata_replay --max-artifacts 1 --event-types alert,flow,dns,http,tls"
     }
   ]
 }

@@ -30,8 +30,10 @@ def setup_landing(base_dir: Path) -> list[str]:
         "semi_structured/threatfox",
         "semi_structured/shodan_seeded",
         "stream/ids_alerts",
+        "stream/ids_alerts/source=suricata",
         "warm/stream_aggregates",
         "unstructured/pcap/source=ctu13",
+        "unstructured/pcap_replay/source=ctu13",
         "metadata/manifests",
     ]
     storage = LandingStorage.from_env(base_dir)

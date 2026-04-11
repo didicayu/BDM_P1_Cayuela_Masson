@@ -161,6 +161,19 @@ class LandingStorage:
             sha256=sha256_file(source_file),
         )
 
+    def download_file(self, relative_path: Path | str, destination: Path) -> Path:
+        """Stage an object from landing storage to a local path without loading it in memory."""
+        relative = Path(relative_path)
+        ensure_dir(destination.parent)
+        if self.backend == "local":
+            shutil.copy2(self.local_root / relative, destination)
+            return destination
+
+        self.ensure_bucket()
+        key = self._s3_key(relative)
+        self._get_client().download_file(self.bucket_name, key, str(destination))
+        return destination
+
     def exists(self, relative_path: Path | str) -> bool:
         relative = Path(relative_path)
         if self.backend == "local":
@@ -285,6 +298,54 @@ class LandingStorage:
         body = self._serialize_manifest(entries)
         client.put_object(Bucket=self.bucket_name, Key=key, Body=body)
         return self._s3_uri(key)
+
+    def read_manifest_entries(
+        self,
+        *,
+        source_id: str,
+        ingest_date: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Read manifest entries for one source across one or all ingest-date partitions."""
+        relative_prefix = Path("metadata") / "manifests"
+
+        if self.backend == "local":
+            manifest_root = self.local_root / relative_prefix
+            if ingest_date:
+                candidates = [manifest_root / f"ingest_date={ingest_date}" / f"{source_id}.jsonl"]
+            else:
+                candidates = sorted(manifest_root.glob(f"ingest_date=*/{source_id}.jsonl"))
+
+            entries: list[dict[str, Any]] = []
+            for path in candidates:
+                if path.exists():
+                    entries.extend(self._parse_manifest(path.read_bytes()))
+            return entries
+
+        self.ensure_bucket()
+        client = self._get_client()
+        if ingest_date:
+            prefix = self._s3_key(relative_prefix / f"ingest_date={ingest_date}" / f"{source_id}.jsonl")
+        else:
+            prefix = self._s3_key(relative_prefix)
+        suffix = f"/{source_id}.jsonl"
+
+        token = None
+        entries: list[dict[str, Any]] = []
+        while True:
+            kwargs = {"Bucket": self.bucket_name, "Prefix": prefix}
+            if token:
+                kwargs["ContinuationToken"] = token
+            response = client.list_objects_v2(**kwargs)
+            for obj in response.get("Contents", []):
+                key = obj["Key"]
+                if ingest_date is None and not key.endswith(suffix):
+                    continue
+                payload = client.get_object(Bucket=self.bucket_name, Key=key)["Body"].read()
+                entries.extend(self._parse_manifest(payload))
+            if not response.get("IsTruncated"):
+                break
+            token = response.get("NextContinuationToken")
+        return entries
 
     def clear_prefix(self, relative_prefix: Path | str) -> int:
         prefix = Path(relative_prefix).as_posix().strip("/")

@@ -16,6 +16,7 @@ from urllib.parse import urljoin
 from ingestion.common.http_utils import download_to_file, fetch_text
 from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
+from ingestion.replay.suricata_replay import artifact_record_from_metadata, write_delta_records
 
 SOURCE_ID = "ctu13_remote_pcap"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -231,6 +232,7 @@ def run(
     skipped_existing = 0
     skipped_missing_artifact = 0
     processed_scenarios = 0
+    catalog_delta_rows = 0
 
     try:
         for scenario in scenarios:
@@ -286,6 +288,7 @@ def run(
                 "artifact_url": selected.artifact_url,
                 "profile": profile,
                 "selection_rule": selected.selection_rule,
+                "ingest_date": ingest_date,
                 "retrieved_at_utc": retrieved_at.isoformat(),
                 "content_type": download_result.content_type,
                 "size_bytes": raw_written.size_bytes,
@@ -300,6 +303,20 @@ def run(
                 ingest_date=ingest_date,
                 entry=metadata,
             )
+            catalog_record = artifact_record_from_metadata(metadata)
+            if catalog_record is not None:
+                catalog_delta_rows += write_delta_records(
+                    table_name="pcap_artifacts",
+                    records=[catalog_record],
+                    merge_keys=[
+                        "source_id",
+                        "scenario_number",
+                        "artifact_name",
+                        "ingest_date",
+                        "sha256",
+                    ],
+                    partition_by=["ingest_date"],
+                )
 
             downloaded_artifacts += 1
             processed_scenarios += 1
@@ -315,6 +332,7 @@ def run(
         "downloaded_artifacts": downloaded_artifacts,
         "skipped_existing": skipped_existing,
         "skipped_missing_artifact": skipped_missing_artifact,
+        "catalog_delta_rows": catalog_delta_rows,
     }
 
 
@@ -333,7 +351,8 @@ def main() -> int:
         f"downloaded={result['downloaded_artifacts']} "
         f"processed={result['processed_scenarios']} "
         f"skipped_existing={result['skipped_existing']} "
-        f"skipped_missing_artifact={result['skipped_missing_artifact']}"
+        f"skipped_missing_artifact={result['skipped_missing_artifact']} "
+        f"catalog_delta_rows={result['catalog_delta_rows']}"
     )
     return 0
 

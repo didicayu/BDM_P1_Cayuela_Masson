@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.git
+.venv
+__pycache__
+*.pyc
+data
+temporary
+docs/p1_2_delivery/build
+docs/p1_2_delivery/src/*.aux
+docs/p1_2_delivery/src/*.fdb_latexmk
+docs/p1_2_delivery/src/*.fls
+docs/p1_2_delivery/src/*.log
+docs/p1_2_delivery/src/*.out
+docs/p1_2_delivery/src/*.pdf
+docs/p1_2_delivery/src/*.synctex.gz
+orchestration/airflow/logs

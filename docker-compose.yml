@@ -40,6 +40,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     restart: unless-stopped
 
   postgres:
@@ -56,7 +57,10 @@ services:
     restart: unless-stopped
 
   airflow-init:
-    image: apache/airflow:2.10.4
+    build:
+      context: .
+      dockerfile: orchestration/airflow/Dockerfile
+    image: cybersecintel-airflow:2.10.4-suricata
     container_name: cybersecintel-airflow-init
     depends_on:
       - postgres
@@ -71,6 +75,18 @@ services:
       ABUSE_CH_API_KEY: ${ABUSE_CH_API_KEY:-}
       SHODAN_API_KEY: ${SHODAN_API_KEY:-}
       PCAP_SOURCE_PROFILE: ${PCAP_SOURCE_PROFILE:-subset}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      PCAP_REPLAY_ENABLED: ${PCAP_REPLAY_ENABLED:-false}
+      PCAP_REPLAY_MAX_ARTIFACTS: ${PCAP_REPLAY_MAX_ARTIFACTS:-1}
+      PCAP_REPLAY_EVENT_TYPES: ${PCAP_REPLAY_EVENT_TYPES:-alert,flow,dns,http,tls}
+      PCAP_REPLAY_ALLOW_DECOMPRESS: ${PCAP_REPLAY_ALLOW_DECOMPRESS:-false}
+      PCAP_REPLAY_MAX_BYTES: ${PCAP_REPLAY_MAX_BYTES:-}
+      PCAP_REPLAY_SURICATA_BIN: ${PCAP_REPLAY_SURICATA_BIN:-suricata}
+      PCAP_REPLAY_INGEST_DATE: ${PCAP_REPLAY_INGEST_DATE:-}
+      PCAP_REPLAY_KAFKA_ENABLED: ${PCAP_REPLAY_KAFKA_ENABLED:-true}
+      PCAP_REPLAY_KAFKA_STRICT: ${PCAP_REPLAY_KAFKA_STRICT:-true}
+      PCAP_REPLAY_KAFKA_SURICATA_TOPIC: ${PCAP_REPLAY_KAFKA_SURICATA_TOPIC:-suricata.events}
+      PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC: ${PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC:-ids.alerts}
       SHODAN_ENABLED: ${SHODAN_ENABLED:-false}
       EPSS_RESULTS_PER_PAGE: ${EPSS_RESULTS_PER_PAGE:-1000}
       EPSS_MAX_PAGES: ${EPSS_MAX_PAGES:-10}
@@ -88,7 +104,6 @@ services:
       MINIO_KEY_PREFIX: ${MINIO_KEY_PREFIX:-}
       DELTA_BUCKET: ${DELTA_BUCKET:-deltalake}
       DELTA_LOCAL_ROOT: ${DELTA_LOCAL_ROOT:-}
-      _PIP_ADDITIONAL_REQUIREMENTS: "deltalake pyarrow"
       _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USER_USERNAME:-admin}
       _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_USER_PASSWORD:-admin}
     user: "${AIRFLOW_UID:-50000}:0"
@@ -104,7 +119,10 @@ services:
       "
 
   airflow-webserver:
-    image: apache/airflow:2.10.4
+    build:
+      context: .
+      dockerfile: orchestration/airflow/Dockerfile
+    image: cybersecintel-airflow:2.10.4-suricata
     container_name: cybersecintel-airflow-webserver
     depends_on:
       - postgres
@@ -119,6 +137,18 @@ services:
       ABUSE_CH_API_KEY: ${ABUSE_CH_API_KEY:-}
       SHODAN_API_KEY: ${SHODAN_API_KEY:-}
       PCAP_SOURCE_PROFILE: ${PCAP_SOURCE_PROFILE:-subset}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      PCAP_REPLAY_ENABLED: ${PCAP_REPLAY_ENABLED:-false}
+      PCAP_REPLAY_MAX_ARTIFACTS: ${PCAP_REPLAY_MAX_ARTIFACTS:-1}
+      PCAP_REPLAY_EVENT_TYPES: ${PCAP_REPLAY_EVENT_TYPES:-alert,flow,dns,http,tls}
+      PCAP_REPLAY_ALLOW_DECOMPRESS: ${PCAP_REPLAY_ALLOW_DECOMPRESS:-false}
+      PCAP_REPLAY_MAX_BYTES: ${PCAP_REPLAY_MAX_BYTES:-}
+      PCAP_REPLAY_SURICATA_BIN: ${PCAP_REPLAY_SURICATA_BIN:-suricata}
+      PCAP_REPLAY_INGEST_DATE: ${PCAP_REPLAY_INGEST_DATE:-}
+      PCAP_REPLAY_KAFKA_ENABLED: ${PCAP_REPLAY_KAFKA_ENABLED:-true}
+      PCAP_REPLAY_KAFKA_STRICT: ${PCAP_REPLAY_KAFKA_STRICT:-true}
+      PCAP_REPLAY_KAFKA_SURICATA_TOPIC: ${PCAP_REPLAY_KAFKA_SURICATA_TOPIC:-suricata.events}
+      PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC: ${PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC:-ids.alerts}
       SHODAN_ENABLED: ${SHODAN_ENABLED:-false}
       EPSS_RESULTS_PER_PAGE: ${EPSS_RESULTS_PER_PAGE:-1000}
       EPSS_MAX_PAGES: ${EPSS_MAX_PAGES:-10}
@@ -136,7 +166,6 @@ services:
       MINIO_KEY_PREFIX: ${MINIO_KEY_PREFIX:-}
       DELTA_BUCKET: ${DELTA_BUCKET:-deltalake}
       DELTA_LOCAL_ROOT: ${DELTA_LOCAL_ROOT:-}
-      _PIP_ADDITIONAL_REQUIREMENTS: "deltalake pyarrow"
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./orchestration/airflow/dags:/opt/airflow/dags
@@ -149,7 +178,10 @@ services:
     restart: unless-stopped
 
   airflow-scheduler:
-    image: apache/airflow:2.10.4
+    build:
+      context: .
+      dockerfile: orchestration/airflow/Dockerfile
+    image: cybersecintel-airflow:2.10.4-suricata
     container_name: cybersecintel-airflow-scheduler
     depends_on:
       - postgres
@@ -164,6 +196,18 @@ services:
       ABUSE_CH_API_KEY: ${ABUSE_CH_API_KEY:-}
       SHODAN_API_KEY: ${SHODAN_API_KEY:-}
       PCAP_SOURCE_PROFILE: ${PCAP_SOURCE_PROFILE:-subset}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      PCAP_REPLAY_ENABLED: ${PCAP_REPLAY_ENABLED:-false}
+      PCAP_REPLAY_MAX_ARTIFACTS: ${PCAP_REPLAY_MAX_ARTIFACTS:-1}
+      PCAP_REPLAY_EVENT_TYPES: ${PCAP_REPLAY_EVENT_TYPES:-alert,flow,dns,http,tls}
+      PCAP_REPLAY_ALLOW_DECOMPRESS: ${PCAP_REPLAY_ALLOW_DECOMPRESS:-false}
+      PCAP_REPLAY_MAX_BYTES: ${PCAP_REPLAY_MAX_BYTES:-}
+      PCAP_REPLAY_SURICATA_BIN: ${PCAP_REPLAY_SURICATA_BIN:-suricata}
+      PCAP_REPLAY_INGEST_DATE: ${PCAP_REPLAY_INGEST_DATE:-}
+      PCAP_REPLAY_KAFKA_ENABLED: ${PCAP_REPLAY_KAFKA_ENABLED:-true}
+      PCAP_REPLAY_KAFKA_STRICT: ${PCAP_REPLAY_KAFKA_STRICT:-true}
+      PCAP_REPLAY_KAFKA_SURICATA_TOPIC: ${PCAP_REPLAY_KAFKA_SURICATA_TOPIC:-suricata.events}
+      PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC: ${PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC:-ids.alerts}
       SHODAN_ENABLED: ${SHODAN_ENABLED:-false}
       EPSS_RESULTS_PER_PAGE: ${EPSS_RESULTS_PER_PAGE:-1000}
       EPSS_MAX_PAGES: ${EPSS_MAX_PAGES:-10}
@@ -181,7 +225,6 @@ services:
       MINIO_KEY_PREFIX: ${MINIO_KEY_PREFIX:-}
       DELTA_BUCKET: ${DELTA_BUCKET:-deltalake}
       DELTA_LOCAL_ROOT: ${DELTA_LOCAL_ROOT:-}
-      _PIP_ADDITIONAL_REQUIREMENTS: "deltalake pyarrow"
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./orchestration/airflow/dags:/opt/airflow/dags

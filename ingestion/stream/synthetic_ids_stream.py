@@ -42,6 +42,8 @@ def random_ip() -> str:
 
 def generate_event(now: dt.datetime) -> dict[str, str | int]:
     return {
+        "source": "synthetic",
+        "event_type": "alert",
         "timestamp_utc": now.isoformat(),
         "src_ip": random_ip(),
         "dst_ip": random_ip(),
@@ -49,6 +51,10 @@ def generate_event(now: dt.datetime) -> dict[str, str | int]:
         "dst_port": random.choice([22, 53, 80, 443, 3389, 8080]),
         "signature": random.choice(SIGNATURES),
         "severity": random.choice([1, 2, 3, 4]),
+        "category": "synthetic",
+        "scenario_number": 0,
+        "artifact_sha256": "",
+        "replay_run_id": "",
     }
 
 
