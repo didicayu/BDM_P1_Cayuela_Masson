@@ -116,7 +116,14 @@ In many small SOC environments, this work is fragmented. Analysts manually consu
 The P1 scope is intentionally aligned with the course statement. It does not attempt to prove a final detection model or dashboard. Instead, it builds the raw and queryable foundation that later P2 trusted and exploitation zones can use. This is why packet captures remain immutable binary objects, while metadata and replay-derived events become Delta records.
 
 \subsection{Business value}
-The main business value is reduced time-to-triage and more consistent prioritization. A future analyst should be able to ask: which vulnerabilities are known to be exploited, which CVEs have high EPSS probability, which external indicators are active in public feeds, which PCAP artifact generated an alert, and where the original raw evidence is stored. The platform supports that value by removing manual collection steps and replacing them with repeatable Airflow tasks.
+The main business value is reduced time-to-triage and more consistent prioritization. CyberSecIntel is designed around the minimum set of data needed to answer the three questions a SOC analyst asks during initial triage:
+\begin{itemize}
+  \item \textbf{Is this CVE actively exploited?} CISA KEV provides the exploited-in-the-wild signal, while NVD provides the technical vulnerability context.
+  \item \textbf{How likely is exploitation?} FIRST EPSS adds a probability score that helps rank vulnerabilities when the patch backlog is larger than the team can process immediately.
+  \item \textbf{Is there network evidence in our traffic?} CTU-13 PCAP artifacts, Suricata replay, Kafka topics, and normalized IDS events connect vulnerability and IOC context with observed packet-level evidence.
+\end{itemize}
+
+This means P1 already delivers direct analyst value, even before the P2 trusted and exploitation zones are added. An analyst can trace a Suricata alert back to the PCAP artifact that produced it, inspect whether related CVEs are exploited or likely to be exploited, and verify where the original raw evidence is stored. The platform supports that value by removing manual collection steps and replacing them with repeatable Airflow tasks.
 
 For P1, the measurable value is operational reproducibility:
 \begin{itemize}
@@ -179,7 +186,7 @@ The architecture follows the course framework: data ingestion, raw data storage 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{BDM_P1.1.drawio.png}
-  \caption{CyberSecIntel architecture from the P1 design. The final implementation refines the unstructured branch with automated CTU-13 ingestion, Suricata replay, Delta catalogs, and Kafka publication.}
+  \caption{CyberSecIntel architecture design.}
 \end{figure}
 
 The diagram keeps the same conceptual separation as the first design: external cybersecurity sources feed ingestion components; ingestion lands raw data in the lakehouse; stream and replay paths provide operational events; future trusted and exploitation stages will clean, integrate, aggregate, and serve the data. The final implementation changed one important practical detail from the first draft: the manual CIC artifact idea was replaced by automated CTU-13 discovery and download, because the P1 statement explicitly rewards ingestion from non-local environments.
