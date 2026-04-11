@@ -1,0 +1,359 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.05cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{float}
+
+\graphicspath{{../p1_2_delivery/assets/}}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue,
+  hypertexnames=false
+}
+
+\setlist[itemize]{leftmargin=1.35em,itemsep=0.15em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=1.45em,itemsep=0.15em,topsep=0.2em}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.48em}
+\emergencystretch=3em
+\Urlmuskip=0mu plus 1mu\relax
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\title{\vspace{-1.0cm}CyberSecIntel\\P1 Final Delivery\\Contextualization, Data Ingestion and Landing Zone}
+\author{D\'idac Cayuela and Sindri Masson\\Big Data Management -- Universitat Politecnica de Catalunya}
+\date{April 2026}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\section*{Instructions}
+\thispagestyle{empty}
+
+{\small
+\textbf{Repository access.} The project repository is:
+\begin{center}
+  \url{https://github.com/didicayu/BDM_P1_Cayuela_Masson.git}
+\end{center}
+The final P1 implementation is on branch \code{main}. A supervisor can clone and run it locally:
+\begin{verbatim}
+git clone https://github.com/didicayu/BDM_P1_Cayuela_Masson.git
+cd BDM_P1_Cayuela_Masson
+cp .env.example .env
+\end{verbatim}
+
+\textbf{Requirements.} Docker Desktop or Docker Engine with Compose is required. Network access is needed for public data ingestion and for building the custom Airflow image, because the image downloads the Emerging Threats Open Suricata ruleset. API keys are optional except for the branches that explicitly depend on them: NVD benefits from \code{NVD_API_KEY}; ThreatFox uses \code{ABUSE_CH_API_KEY}; Shodan remains disabled unless \code{SHODAN_ENABLED=true}.
+
+\textbf{Build and start services.}
+\begin{verbatim}
+docker compose build airflow-webserver airflow-scheduler airflow-init
+docker compose up -d minio zookeeper kafka postgres
+docker compose run --rm airflow-init
+docker compose up -d airflow-webserver airflow-scheduler
+\end{verbatim}
+Service UIs and endpoints: Airflow at \url{http://localhost:8080}; MinIO console at \url{http://localhost:9001}; MinIO API at \url{http://localhost:9000}; Kafka host bootstrap at \code{localhost:9092}. Default local credentials are defined in \code{.env.example}.
+
+\textbf{Run the P1 ingestion pipelines.}
+\begin{verbatim}
+docker compose exec airflow-webserver airflow dags unpause \
+  cybersecintel_dataset_artifact_ingestion
+docker compose exec airflow-webserver airflow dags trigger \
+  cybersecintel_dataset_artifact_ingestion
+docker compose exec airflow-webserver airflow dags unpause \
+  cybersecintel_api_expansion_ingestion
+docker compose exec airflow-webserver airflow dags trigger \
+  cybersecintel_api_expansion_ingestion
+\end{verbatim}
+After at least one CTU PCAP artifact exists, enable replay in \code{.env} with \code{PCAP_REPLAY_ENABLED=true}, restart Airflow, and run:
+\begin{verbatim}
+docker compose up -d airflow-webserver airflow-scheduler
+docker compose exec airflow-webserver airflow dags unpause \
+  cybersecintel_pcap_replay
+docker compose exec airflow-webserver airflow dags trigger \
+  cybersecintel_pcap_replay
+\end{verbatim}
+
+\textbf{Basic verification.}
+\begin{verbatim}
+.venv/bin/python -m unittest discover -s tests
+docker compose exec kafka kafka-run-class kafka.tools.GetOffsetShell \
+  --broker-list kafka:29092 --topic suricata.events --time -1
+docker compose exec kafka kafka-run-class kafka.tools.GetOffsetShell \
+  --broker-list kafka:29092 --topic ids.alerts --time -1
+\end{verbatim}
+Raw outputs are in the MinIO bucket \code{landing}; Delta Lake tables are in \code{deltalake}. The main landing prefixes are \code{structured/}, \code{semi_structured/}, \code{stream/}, \code{unstructured/}, and \code{metadata/manifests/}. This instruction page is intentionally unnumbered, following the P1 statement.
+}
+
+\clearpage
+\pagenumbering{arabic}
+\maketitle
+\vspace{-0.7cm}
+
+\begin{abstract}
+CyberSecIntel is a cybersecurity data platform for small Security Operations Center (SOC) workflows. The P1 deliverable implements the first stage of the required big-data architecture: contextualization, automated data ingestion, and a governed landing zone. The implementation ingests vulnerability intelligence, exploit-probability scores, IOC feeds, CTU-13 packet captures, synthetic IDS records, and replay-derived Suricata events. It combines scheduled batch ingestion with a Kafka-backed hot path, stores raw source-native assets in MinIO, and materializes queryable Delta Lake tables for metadata and structured security events. The trusted, exploitation, and final consumption layers are shown as architectural targets for P2, while P1 focuses on reproducible ingestion, raw storage, lineage, and operational automation.
+\end{abstract}
+
+\section{Contextualization}
+
+\subsection{Domain and operational problem}
+The selected domain is cybersecurity operations and vulnerability prioritization. A small SOC receives heterogeneous signals: network alerts, packet captures, malicious URL feeds, vulnerability advisories, exploit-likelihood scores, and optional exposure context from external scanners. These signals are valuable only if they can be collected consistently, traced back to origin, and later correlated across identifiers such as CVEs, IP addresses, domains, signatures, and timestamps.
+
+In many small SOC environments, this work is fragmented. Analysts manually consult CISA KEV for exploited vulnerabilities, NVD for CVE details, EPSS for probability of exploitation, URLhaus or ThreatFox for indicators of compromise, and packet evidence or IDS logs for observed activity. The problem tackled by CyberSecIntel is therefore not only security detection, but the data-engineering foundation needed to make detection and triage repeatable: automated ingestion, immutable raw storage, metadata capture, and a path from raw evidence to stream-compatible security events.
+
+The P1 scope is intentionally aligned with the course statement. It does not attempt to prove a final detection model or dashboard. Instead, it builds the raw and queryable foundation that later P2 trusted and exploitation zones can use. This is why packet captures remain immutable binary objects, while metadata and replay-derived events become Delta records.
+
+\subsection{Business value}
+The main business value is reduced time-to-triage and more consistent prioritization. A future analyst should be able to ask: which vulnerabilities are known to be exploited, which CVEs have high EPSS probability, which external indicators are active in public feeds, which PCAP artifact generated an alert, and where the original raw evidence is stored. The platform supports that value by removing manual collection steps and replacing them with repeatable Airflow tasks.
+
+For P1, the measurable value is operational reproducibility:
+\begin{itemize}
+  \item every raw payload or PCAP is stored in a stable partitioned object-store path;
+  \item every ingested artifact has metadata describing origin, size, checksum, timestamp, and selection context;
+  \item every source has manifest entries for auditability and reruns;
+  \item queryable Delta tables expose catalogs and structured records without discarding the raw files;
+  \item replay-derived events are also published to Kafka topics, proving that landed historical artifacts can feed the hot path.
+\end{itemize}
+
+\subsection{Stakeholders and success criteria}
+The direct users are SOC analysts, security engineers, patch-management teams, and management stakeholders. Analysts need searchable evidence and alert context; engineers need reliable pipelines and clear failure modes; patch teams need vulnerability signals such as KEV and EPSS; management needs later aggregates and KPIs. The P1 success criteria are therefore: include all required data categories, automate ingestion from non-local sources, implement a real landing zone, orchestrate the workflows, containerize deployed services, and leave a clear extension path for P2.
+
+\section{Data Sources and Selection}
+
+\subsection{Source mix}
+The source mix intentionally includes structured, semi-structured, unstructured, batch, and stream-like data. This satisfies the project requirement while also matching the cybersecurity domain: vulnerability intelligence is naturally tabular or semi-structured, IOC feeds are irregular and source-specific, and network evidence is often raw binary PCAP.
+
+{\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.25cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{2.5cm}X}
+\toprule
+\textbf{Source} & \textbf{Type} & \textbf{Access pattern} & \textbf{Role in the platform}\\
+\midrule
+CISA Known Exploited Vulnerabilities (KEV) & Structured & Scheduled JSON feed pull & Canonical exploited CVE list, used as a strong prioritization baseline.\\
+FIRST EPSS & Structured & Paginated API pull & Daily exploit probability scores for ranking CVEs and choosing enrichment targets.\\
+NVD CVE v2 & Semi-structured & REST API with time windows and pagination & CVE descriptions, CVSS metrics, configurations, and references for enrichment.\\
+URLhaus recent feed & Semi-structured & Public CSV feed pull & Malicious URL and host indicators for IOC context.\\
+CIRCL Vulnerability-Lookup & Semi-structured & REST API enrichment & Additional vulnerability context for high-priority EPSS CVEs.\\
+ThreatFox & Semi-structured & Optional authenticated API pull & IOC feed with malware infrastructure indicators; skipped when no key is available.\\
+Shodan host lookup & Semi-structured & Optional seeded API lookup & Exposure details for selected IP indicators; disabled by default to control cost and scope.\\
+CTU-13 PCAP artifacts & Unstructured & Remote dataset discovery and download & Raw packet evidence; kept immutable and replayed through Suricata.\\
+Synthetic and replay-derived IDS events & Structured event stream & Python producer and Kafka publish & Hot-path scaffold and real alert/event stream for later aggregation.\\
+\bottomrule
+\end{tabularx}
+}
+
+\subsection{Why these sources fit}
+CISA KEV, NVD, and EPSS represent vulnerability prioritization from complementary angles: exploited in the wild, technical detail and severity, and probability of exploitation. URLhaus, ThreatFox, CIRCL, and Shodan add IOC and enrichment context that is useful for later correlation. CTU-13 adds the unstructured network-evidence branch with realistic packet traffic and enough size to justify object storage. The synthetic stream keeps the hot path testable even when no real IDS sensor is connected, while Suricata replay proves that the unstructured branch can be converted into event telemetry.
+
+This combination is also feasible for a course project because the sources are public, programmatically accessible, and reproducible. It avoids a purely local-file workflow: API/feed tasks access external services, CTU discovery reads a public dataset host, and replay is performed from the landed raw artifact rather than from manually copied local files.
+
+\subsection{Official source references}
+The implementation uses the following official pages and endpoints:
+{\small
+\begin{itemize}
+  \item CISA KEV catalog and JSON feed: \href{https://www.cisa.gov/known-exploited-vulnerabilities}{CISA KEV catalog}, \href{https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json}{CISA KEV JSON feed}.
+  \item NVD CVE API v2: \href{https://nvd.nist.gov/developers/vulnerabilities}{NVD vulnerability API guide}, \href{https://services.nvd.nist.gov/rest/json/cves/2.0}{NVD CVE API endpoint}.
+  \item FIRST EPSS API: \href{https://www.first.org/epss/api}{FIRST EPSS API guide} and \href{https://api.first.org/data/v1/epss}{FIRST EPSS endpoint}.
+  \item URLhaus recent feed and ThreatFox API: \href{https://urlhaus.abuse.ch/downloads/csv_recent/}{URLhaus recent CSV}, \href{https://threatfox.abuse.ch/api/}{ThreatFox API}.
+  \item CIRCL Vulnerability-Lookup and Shodan APIs: \href{https://vulnerability.circl.lu/documentation}{CIRCL documentation}, \href{https://developer.shodan.io/api}{Shodan API documentation}.
+  \item CTU-13 dataset reference and artifact host: \href{https://www.stratosphereips.org/datasets-ctu13}{CTU-13 reference}, \href{https://mcfp.felk.cvut.cz/publicDatasets/}{CTU public dataset host}.
+\end{itemize}
+}
+
+\section{Architecture Design}
+
+\subsection{High-level design}
+The architecture follows the course framework: data ingestion, raw data storage in a landing zone, future trusted zone, future exploitation zone, and data consumption. P1 implements ingestion and the landing zone, while also preparing the technical interfaces that P2 will consume. The trusted and exploitation zones remain black boxes in the diagram because they are not part of the P1 implementation, but the data contracts they will use are already visible: Delta tables, Kafka topics, raw object paths, and manifest lineage.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{BDM_P1.1.drawio.png}
+  \caption{CyberSecIntel architecture from the P1 design. The final implementation refines the unstructured branch with automated CTU-13 ingestion, Suricata replay, Delta catalogs, and Kafka publication.}
+\end{figure}
+
+The diagram keeps the same conceptual separation as the first design: external cybersecurity sources feed ingestion components; ingestion lands raw data in the lakehouse; stream and replay paths provide operational events; future trusted and exploitation stages will clean, integrate, aggregate, and serve the data. The final implementation changed one important practical detail from the first draft: the manual CIC artifact idea was replaced by automated CTU-13 discovery and download, because the P1 statement explicitly rewards ingestion from non-local environments.
+
+\subsection{Cold, hot, and warm paths}
+\textbf{Cold path.} Public vulnerability and IOC feeds are ingested in batches. Their raw payloads are stored in MinIO using source-native formats, and flattened records are merged into Delta tables when appropriate. CTU-13 PCAP files also belong to the cold path because they are large immutable evidence artifacts that should remain queryable only through metadata, not through direct binary table conversion.
+
+\textbf{Hot path.} Kafka carries time-sensitive security events. P1 implements two producers: a bounded synthetic IDS producer for repeatable testing and the Suricata replay branch for real replay-derived events. The replay branch publishes all normalized EVE events to \code{suricata.events} and alert-compatible records to \code{ids.alerts}. This gives P2 a real message interface for near-real-time consumers.
+
+\textbf{Warm path.} The landing setup reserves \code{warm/stream_aggregates/}. P1 does not yet implement rolling aggregations, but the stored events and Kafka topics make the planned work straightforward: P2 can compute alerts per minute, top source IPs, signatures by severity, or vulnerability-linked risk summaries.
+
+\subsection{P1 and P2 boundary}
+The main P1 responsibility is to make raw data available, traceable, and reproducible. The system therefore avoids prematurely imposing final analytical schemas on every source. The P2 trusted zone will apply stronger schema validation, entity resolution across CVEs and IOCs, quality checks, and deduplication. The exploitation zone will then produce dashboards, prioritization tables, and SOC-facing aggregates. This boundary keeps P1 focused on data management rather than final analytics.
+
+\section{Data Ingestion}
+
+\subsection{Airflow orchestration}
+Three Airflow DAGs automate the P1 flows:
+\begin{itemize}
+  \item \code{cybersecintel_dataset_artifact_ingestion}: prepares landing prefixes, discovers CTU-13 scenario folders from the public host, downloads selected PCAP artifacts, writes sidecars and manifests, and materializes the \code{pcap_artifacts} catalog.
+  \item \code{cybersecintel_api_expansion_ingestion}: ingests KEV, NVD, URLhaus, EPSS, CIRCL, optional ThreatFox, optional Shodan, and the synthetic IDS stream scaffold.
+  \item \code{cybersecintel_pcap_replay}: intentionally triggered after PCAP artifacts exist; builds the catalog, selects replay candidates, stages artifacts, runs Suricata, persists EVE output, writes Delta rows, and publishes Kafka messages.
+\end{itemize}
+
+Airflow provides task dependencies, retry behavior, execution logs, and operational visibility. Replay is separated into its own DAG rather than being hidden inside the CTU ingestion DAG because offline PCAP processing is heavier and should be triggered deliberately. The guard \code{PCAP_REPLAY_ENABLED=true} prevents accidental full-corpus replay during demos.
+
+\subsection{Batch API and feed ingestion}
+Each public source has a dedicated Python adapter under \code{ingestion/batch/}. The common pattern is:
+\begin{enumerate}
+  \item request the public API or feed using bounded pagination, time windows, retries, and timeouts;
+  \item write the raw source payload to MinIO under a partitioned path;
+  \item write a metadata sidecar and append a manifest entry;
+  \item flatten the records that are useful for query and merge them into a Delta table.
+\end{enumerate}
+
+This design deliberately separates raw preservation from query-oriented representation. NVD, ThreatFox, and Shodan can change shape over time, so the raw JSON is the authoritative record. Delta tables are a convenience layer for P1/P2 processing, not a replacement for the original source data. KEV and EPSS are more stable and are therefore easier to merge by natural keys such as CVE and date.
+
+\subsection{CTU-13 artifact ingestion}
+The unstructured branch is implemented through remote CTU discovery instead of manual file staging. The downloader inspects the public dataset directory, matches CTU botnet scenario folders numbered \code{42} through \code{54}, inspects available artifacts, and selects a preferred PCAP according to \code{PCAP_SOURCE_PROFILE}. The default \code{subset} profile is demo-safe and prefers the botnet-only plain \code{.pcap} when available; the \code{full} profile processes one artifact per scenario and can select compressed \code{.pcap.bz2} files.
+
+Every landed PCAP receives a metadata sidecar with source URL, scenario number, artifact name, content type, size, checksum, profile, selection rule, and retrieval timestamp. The raw PCAP remains immutable in the bronze layer. The \code{pcap_artifacts} Delta table makes the binary corpus queryable without converting PCAP bytes into tabular data.
+
+\subsection{PCAP replay and Suricata normalization}
+The replay branch turns selected landed packet captures into replay-derived security telemetry. The chosen replay engine is Suricata offline mode, executed with \code{suricata -r <pcap>}. The Airflow image includes Suricata, \code{suricata-update}, and the Emerging Threats Open ruleset, and the Docker build validates the generated \code{suricata.rules} file with \code{suricata -T}.
+
+The replay task stages a selected artifact to \code{/tmp/cybersecintel/<dag>/<run>/}, verifies its checksum, optionally decompresses \code{.pcap.bz2} when explicitly enabled, runs Suricata, and writes \code{eve.json} back to MinIO as \code{eve.jsonl}. The parser keeps the configured EVE event types: \code{alert}, \code{flow}, \code{dns}, \code{http}, and \code{tls}. Normalized records contain stable fields such as event type, timestamp, source/destination IP and port, protocol, application protocol, signature, severity, category, flow id, packet count, scenario, artifact checksum, replay run id, and ingestion date.
+
+Alerts are additionally projected into the existing IDS event shape so that replay output and stream events share the same downstream interface. This design is more stable than live packet replay for P1 because it avoids timing, interface, and privilege issues while still proving that raw PCAP artifacts can produce operational telemetry.
+
+\subsection{Streaming ingestion}
+Kafka is deployed with Zookeeper and exposes \code{localhost:9092} to the host and \code{kafka:29092} to containers. P1 uses Kafka for the hot path in two ways. The synthetic IDS task writes bounded alert records for repeatable tests. The replay module publishes normalized Suricata records to \code{suricata.events} and alert-compatible records to \code{ids.alerts}. With \code{PCAP_REPLAY_KAFKA_STRICT=true}, publish failures fail the replay task, which is useful because it proves the hot-path handoff rather than silently ignoring it.
+
+\section{Landing Zone}
+
+\subsection{Storage choice}
+The landing zone is a local lakehouse. MinIO is used as the S3-compatible object store for raw bronze objects. Delta Lake is used as the open table format for queryable records, metadata catalogs, replay-run records, and normalized events. This choice satisfies the project recommendation to use object storage and an open table format while keeping the stack deployable on a laptop with Docker Compose.
+
+The design follows a read-first, model-later philosophy. Raw data is preserved before transformation, which is important for reproducibility and for future schema changes. The Delta layer adds ACID commits, merge semantics, Parquet storage, schema tracking, and versioned transaction logs. In a cloud deployment, the same storage abstraction could point to an S3-compatible service rather than local MinIO.
+
+\subsection{Object layout}
+The \code{landing} bucket is organized by data family, source, and logical partitions. The main prefixes are:
+
+{\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{5.4cm}X}
+\toprule
+\textbf{Prefix} & \textbf{Purpose}\\
+\midrule
+\path{structured/kev/} & Raw CISA KEV feed, partitioned by ingestion date.\\
+\path{structured/epss/} & Raw FIRST EPSS API pages, partitioned by ingestion date and page number.\\
+\path{semi_structured/nvd/} & Raw NVD CVE API pages from bounded time windows.\\
+\path{semi_structured/urlhaus/} & Raw URLhaus recent CSV feed.\\
+\path{semi_structured/circl_vulnlookup/} & CIRCL enrichment responses for selected CVEs.\\
+\path{semi_structured/threatfox/} and \path{semi_structured/shodan_seeded/} & Optional IOC and exposure enrichment branches.\\
+\path{unstructured/pcap/source=ctu13/} & Immutable CTU PCAP or PCAP.BZ2 artifacts, partitioned by scenario and date.\\
+\path{unstructured/pcap_replay/source=ctu13/} & Suricata EVE JSONL, partitioned by scenario, artifact hash, and date.\\
+\path{stream/ids_alerts/source=suricata/} & Replay-derived alert JSONL, partitioned by date and hour.\\
+\path{metadata/manifests/} & Per-source JSONL manifests for lineage, audit, and reruns.\\
+\bottomrule
+\end{tabularx}
+}
+
+\subsection{Delta table layout}
+The \code{deltalake} bucket stores queryable Delta tables:
+\begin{itemize}
+  \item \code{kev}, \code{epss}, \code{nvd}, \code{urlhaus}, \code{circl_vulnlookup}, \code{threatfox}, and \code{shodan_seeded} store flattened feed/enrichment records.
+  \item \code{ids_alerts} is append-only and stores both synthetic IDS events and Suricata alert-shaped records.
+  \item \code{pcap_artifacts} catalogs landed PCAP binaries by source, scenario, artifact name, ingestion date, and SHA-256.
+  \item \code{pcap_replay_runs} stores one row per replay attempt, including status, event counts, output paths, timings, and error summaries.
+  \item \code{suricata_events} stores normalized EVE records with lineage to the artifact and replay run.
+\end{itemize}
+
+Merge keys are used for stable batch sources and catalogs, while append-only writes are used for stream-style event tables. This prevents duplicate catalog rows on rerun, while preserving event history where multiple replays are meaningful.
+
+\subsection{Metadata management and idempotency}
+The landing zone is designed to avoid becoming a data swamp. Each raw object has a sidecar with origin and integrity metadata. Each source also appends JSONL manifest entries under \code{metadata/manifests/ingest_date=...}. PCAP sidecars include checksums, and replay staging verifies those checksums before Suricata runs. Replay runs receive unique \code{replay_run_id} values, so generated EVE events and IDS alerts can be traced back to both the original PCAP and the replay attempt that produced them.
+
+The implementation also avoids deleting or overwriting raw PCAP artifacts after replay. Generated replay outputs are stored separately under \code{unstructured/pcap_replay/}. This separation is important because PCAP files are evidence, while EVE JSON and alert records are derived products.
+
+\section{Containerization and Organization}
+
+\subsection{Runtime services}
+The deployment is containerized with Docker Compose. The stack includes MinIO for object storage, Kafka and Zookeeper for the hot path, Postgres for Airflow metadata, and Airflow webserver/scheduler/init services for orchestration. A custom Airflow image installs Python dependencies, Suricata, \code{suricata-update}, and the Emerging Threats Open ruleset. The build step fails fast if the rules file is missing or if Suricata cannot load the configuration.
+
+This local stack is not a production distributed cluster, but it follows the same interfaces: S3-compatible object operations, Kafka topics, Airflow DAGs, and Delta transaction logs. That makes the design portable to managed equivalents such as S3-compatible object storage, managed Kafka, or hosted Airflow.
+
+\subsection{Code organization}
+The repository is organized by stage and responsibility:
+\begin{itemize}
+  \item \code{ingestion/batch/}: source-specific public feed and API clients;
+  \item \code{ingestion/datasets/}: CTU remote PCAP discovery and download;
+  \item \code{ingestion/replay/}: Suricata offline replay, normalization, Delta writes, and Kafka publishing;
+  \item \code{ingestion/stream/}: synthetic IDS event scaffold;
+  \item \code{ingestion/common/}: shared HTTP, landing storage, metadata, and Delta helpers;
+  \item \code{landing/}: landing-zone prefix setup;
+  \item \code{orchestration/airflow/dags/}: Airflow DAG definitions;
+  \item \code{docs/}: delivered reports, runbooks, and architecture documentation.
+\end{itemize}
+This separation improves reusability: adding a new source should generally mean adding a focused adapter and DAG task while reusing storage, manifest, and Delta helpers.
+
+\section{Validation and Current Results}
+
+The implementation was validated through unit tests, Docker Compose checks, Airflow runs, object-store inspection, Delta table reads, and Kafka topic inspection. Unit tests cover PCAP catalog construction, candidate selection, EVE normalization, compressed artifact staging, Kafka publishing, and replay-related edge cases. The latest test suite result is \code{14 tests OK}.
+
+The most recent Suricata replay validation used CTU scenario 42 with the Emerging Threats Open ruleset. The replay DAG completed successfully and returned:
+\begin{itemize}
+  \item \code{candidate_artifacts=1};
+  \item \code{successful_replays=1};
+  \item \code{normalized_events=106077};
+  \item \code{alert_events=2762};
+  \item \code{kafka_suricata_events=106077};
+  \item \code{kafka_ids_alerts=2762}.
+\end{itemize}
+
+The landing bucket contains \code{unstructured/pcap_replay/source=ctu13/.../eve.jsonl} and \code{stream/ids_alerts/source=suricata/ingest_date=2026-04-11/hour=14/ids_suricata.jsonl}. The Delta tables include \code{pcap_artifacts}, \code{pcap_replay_runs}, \code{suricata_events}, and \code{ids_alerts}. Kafka offsets verified the hot-path publication: \code{suricata.events} contained \code{209403} messages after repeated test replays, and \code{ids.alerts} contained \code{2762} messages from the ruleset-backed replay. A consumed alert sample had source \code{suricata}, scenario \code{42}, severity \code{3}, and signature \code{SURICATA TCPv4 invalid checksum}.
+
+\section{Constraint Coverage}
+
+{\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.1cm}X}
+\toprule
+\textbf{P1 requirement} & \textbf{Implemented response}\\
+\midrule
+Architecture diagram & Figure 1 shows sources, ingestion, storage, stream path, and downstream black boxes. The text explains the final implementation refinements.\\
+Contextualization & SOC triage and vulnerability prioritization are defined, including stakeholders, problem, value, and success criteria.\\
+Data selection & Structured, semi-structured, unstructured, and stream-like data are all included from public or reproducible sources.\\
+Ingestion design & Batch, streaming, cold, hot, and warm paths are explicitly separated and justified.\\
+Ingestion implementation & Airflow DAGs automate public APIs, feeds, CTU remote downloads, synthetic IDS events, and Suricata replay.\\
+Landing design & MinIO implements the bronze data lake; Delta Lake provides lakehouse metadata and queryable tables.\\
+Landing implementation & Raw objects, sidecars, manifests, Delta tables, replay output, and IDS alert objects are written and verified.\\
+Orchestration & Airflow manages task order, logging, retries, guards, and manual or scheduled execution.\\
+Containerization & Docker Compose deploys MinIO, Kafka, Zookeeper, Postgres, and custom Airflow.\\
+Organization & Code is separated by batch, dataset, replay, stream, common helpers, landing setup, and orchestration.\\
+\bottomrule
+\end{tabularx}
+}
+
+\section{Limitations and Next Steps}
+
+The full CTU corpus is intentionally not replayed by default because it can be large in storage, CPU, and runtime cost. The demo profile therefore uses \code{PCAP_REPLAY_MAX_ARTIFACTS=1}, skips compressed artifacts unless explicitly enabled, and keeps replay manually gated. ThreatFox and Shodan depend on API-key availability; Shodan is disabled by default to avoid unnecessary external calls. Kafka is currently used for publication and validation, while durable stream processing and warm aggregate consumers are reserved for P2.
+
+The next stage will instantiate the trusted zone with stronger schemas, source-quality checks, CVE and IOC entity resolution, and replay-event validation. The exploitation zone can then produce SOC-facing tables: alert trend aggregates, top source/destination indicators, vulnerability prioritization views that combine KEV and EPSS, and traceability links from each derived insight back to raw evidence.
+
+\section{References}
+
+{\small
+\begin{itemize}
+  \item Apache Airflow documentation: \url{https://airflow.apache.org/docs/}
+  \item Apache Kafka documentation: \url{https://kafka.apache.org/documentation/}
+  \item Delta Lake project: \url{https://delta.io/}
+  \item MinIO object storage: \url{https://min.io/}
+  \item Suricata command-line and EVE JSON documentation: \url{https://docs.suricata.io/en/latest/command-line-options.html}, \url{https://docs.suricata.io/en/latest/output/eve/eve-json-output.html}
+  \item Emerging Threats Open ruleset through Suricata Update: \url{https://suricata-update.readthedocs.io/}
+  \item CISA KEV, NVD, FIRST EPSS, URLhaus, CIRCL, ThreatFox, Shodan, and CTU-13 source references are listed in Section 2.3.
+\end{itemize}
+}
+
+\end{document}
