@@ -9,6 +9,7 @@ import re
 import time
 from typing import Any
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.http_utils import fetch_bytes
 from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
@@ -140,6 +141,7 @@ def run(
     output_relative = relative_dir / "circl_cve_details.jsonl"
 
     lines: list[str] = []
+    delta_records: list[dict[str, Any]] = []
     failed_requests: list[dict[str, Any]] = []
     success_count = 0
 
@@ -186,6 +188,16 @@ def run(
                     "payload": parsed,
                 }
                 lines.append(json.dumps(row, sort_keys=True))
+                delta_records.append(
+                    DeltaLakeStorage.flatten_record({
+                        "cve_id": cve_id,
+                        "source_id": SOURCE_ID,
+                        "request_url": request_url,
+                        "retrieved_at_utc": row["retrieved_at_utc"],
+                        "ingest_date": ingest_date,
+                        "payload": parsed,
+                    })
+                )
                 success_count += 1
 
         if request_sleep_seconds > 0 and index < len(selected_cves) - 1:
@@ -218,6 +230,14 @@ def run(
         ingest_date=ingest_date,
         entry=metadata,
     )
+
+    if delta_records:
+        DeltaLakeStorage.from_env().write_or_merge(
+            "circl_vulnlookup",
+            delta_records,
+            merge_keys=["cve_id"],
+            partition_by=["ingest_date"],
+        )
 
     return {
         "source": SOURCE_ID,

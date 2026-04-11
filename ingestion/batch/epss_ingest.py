@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.http_utils import build_url, fetch_bytes
 from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
@@ -98,6 +99,18 @@ def run(
         total_records += record_count
         pages_ingested += 1
         total_results = _int_or_none(parsed.get("total"))
+
+        if records:
+            delta_records = [
+                {**r, "ingest_date": ingest_date, "retrieved_at_utc": retrieved_at.isoformat()}
+                for r in records
+            ]
+            DeltaLakeStorage.from_env().write_or_merge(
+                "epss",
+                delta_records,
+                merge_keys=["cve", "date"],
+                partition_by=["ingest_date"],
+            )
 
         metadata = {
             "source_id": SOURCE_ID,

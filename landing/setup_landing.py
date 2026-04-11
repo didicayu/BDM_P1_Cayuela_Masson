@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.storage import LandingStorage
 
 
@@ -34,7 +35,9 @@ def setup_landing(base_dir: Path) -> list[str]:
         "metadata/manifests",
     ]
     storage = LandingStorage.from_env(base_dir)
-    return storage.ensure_layout(prefixes)
+    paths = storage.ensure_layout(prefixes)
+    DeltaLakeStorage.from_env().ensure_bucket()
+    return paths
 
 
 def main() -> int:

@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.http_utils import fetch_bytes
 from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
@@ -122,6 +123,24 @@ def run(
         ingest_date=ingest_date,
         entry=metadata,
     )
+
+    if records:
+        delta = DeltaLakeStorage.from_env()
+        delta_records = [
+            delta.flatten_record({
+                **r,
+                "ingest_date": ingest_date,
+                "retrieved_at_utc": retrieved_at.isoformat(),
+            })
+            for r in records
+            if isinstance(r, dict)
+        ]
+        delta.write_or_merge(
+            "threatfox",
+            delta_records,
+            merge_keys=["id"],
+            partition_by=["ingest_date"],
+        )
 
     return {
         "source": SOURCE_ID,

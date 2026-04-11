@@ -13,6 +13,7 @@ import random
 import time
 from pathlib import Path
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
 
@@ -67,14 +68,26 @@ def run(base_dir: Path, events: int, interval_ms: int) -> Path:
     storage.clear_prefix(output_relative.parent)
 
     lines: list[str] = []
+    event_dicts: list[dict] = []
     for _ in range(events):
         event_now = utc_now()
-        lines.append(json.dumps(generate_event(event_now), sort_keys=True))
+        event = generate_event(event_now)
+        lines.append(json.dumps(event, sort_keys=True))
+        event_dicts.append({**event, "ingest_date": ingest_date})
         if interval_ms > 0:
             time.sleep(interval_ms / 1000.0)
 
     payload = ("\n".join(lines) + "\n").encode("utf-8")
     result = storage.write_bytes(output_relative, payload)
+
+    if event_dicts:
+        DeltaLakeStorage.from_env().write_or_merge(
+            "ids_alerts",
+            event_dicts,
+            merge_keys=None,
+            partition_by=["ingest_date"],
+        )
+
     return Path(result.landing_path)
 
 

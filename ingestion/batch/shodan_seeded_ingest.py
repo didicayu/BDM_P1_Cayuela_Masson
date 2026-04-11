@@ -11,6 +11,7 @@ import re
 import time
 from typing import Any
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.http_utils import build_url, fetch_bytes
 from ingestion.common.landing_utils import ingest_date_str, partition_now, utc_now
 from ingestion.common.storage import LandingStorage
@@ -193,6 +194,7 @@ def run(
     output_relative = relative_dir / "shodan_hosts.jsonl"
 
     lines: list[str] = []
+    delta_records: list[dict[str, Any]] = []
     failed_requests: list[dict[str, Any]] = []
     success_count = 0
 
@@ -237,14 +239,24 @@ def run(
                     }
                 )
             else:
+                retrieved_at_row = utc_now().isoformat()
                 row = {
                     "source_id": SOURCE_ID,
                     "ip": ip_value,
                     "request_url": request_url,
-                    "retrieved_at_utc": utc_now().isoformat(),
+                    "retrieved_at_utc": retrieved_at_row,
                     "payload": parsed,
                 }
                 lines.append(json.dumps(row, sort_keys=True))
+                delta_records.append(
+                    DeltaLakeStorage.flatten_record({
+                        "ip_str": ip_value,
+                        "source_id": SOURCE_ID,
+                        "retrieved_at_utc": retrieved_at_row,
+                        "ingest_date": ingest_date,
+                        "payload": parsed,
+                    })
+                )
                 success_count += 1
 
         if request_sleep_seconds > 0 and index < len(selected_ips) - 1:
@@ -278,6 +290,14 @@ def run(
         ingest_date=ingest_date,
         entry=metadata,
     )
+
+    if delta_records:
+        DeltaLakeStorage.from_env().write_or_merge(
+            "shodan_seeded",
+            delta_records,
+            merge_keys=["ip_str"],
+            partition_by=["ingest_date"],
+        )
 
     return {
         "source": SOURCE_ID,

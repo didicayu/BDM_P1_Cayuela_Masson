@@ -62,6 +62,7 @@ services:
       - postgres
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__LOGGING__LOG_FILENAME_TEMPLATE: "{{ ti.dag_id }}/{{ ti.run_id | replace(':', '-') }}/{{ ti.task_id }}/attempt={{ ti.try_number }}.log"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-airflow}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW_UID: ${AIRFLOW_UID:-50000}
@@ -85,6 +86,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_SECURE: ${MINIO_SECURE:-false}
       MINIO_KEY_PREFIX: ${MINIO_KEY_PREFIX:-}
+      DELTA_BUCKET: ${DELTA_BUCKET:-deltalake}
+      DELTA_LOCAL_ROOT: ${DELTA_LOCAL_ROOT:-}
+      _PIP_ADDITIONAL_REQUIREMENTS: "deltalake pyarrow"
       _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USER_USERNAME:-admin}
       _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_USER_PASSWORD:-admin}
     user: "${AIRFLOW_UID:-50000}:0"
@@ -106,6 +110,7 @@ services:
       - postgres
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__LOGGING__LOG_FILENAME_TEMPLATE: "{{ ti.dag_id }}/{{ ti.run_id | replace(':', '-') }}/{{ ti.task_id }}/attempt={{ ti.try_number }}.log"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-airflow}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW_UID: ${AIRFLOW_UID:-50000}
@@ -129,6 +134,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_SECURE: ${MINIO_SECURE:-false}
       MINIO_KEY_PREFIX: ${MINIO_KEY_PREFIX:-}
+      DELTA_BUCKET: ${DELTA_BUCKET:-deltalake}
+      DELTA_LOCAL_ROOT: ${DELTA_LOCAL_ROOT:-}
+      _PIP_ADDITIONAL_REQUIREMENTS: "deltalake pyarrow"
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./orchestration/airflow/dags:/opt/airflow/dags
@@ -147,6 +155,7 @@ services:
       - postgres
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__LOGGING__LOG_FILENAME_TEMPLATE: "{{ ti.dag_id }}/{{ ti.run_id | replace(':', '-') }}/{{ ti.task_id }}/attempt={{ ti.try_number }}.log"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-airflow}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW_UID: ${AIRFLOW_UID:-50000}
@@ -170,6 +179,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_SECURE: ${MINIO_SECURE:-false}
       MINIO_KEY_PREFIX: ${MINIO_KEY_PREFIX:-}
+      DELTA_BUCKET: ${DELTA_BUCKET:-deltalake}
+      DELTA_LOCAL_ROOT: ${DELTA_LOCAL_ROOT:-}
+      _PIP_ADDITIONAL_REQUIREMENTS: "deltalake pyarrow"
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./orchestration/airflow/dags:/opt/airflow/dags

@@ -3,7 +3,8 @@
 This repository contains the P1.2 implementation for CyberSecIntel:
 - automated ingestion from public cybersecurity APIs and feeds
 - automatic discovery and download of CTU PCAP artifacts for the unstructured branch
-- landing-zone storage in MinIO with metadata sidecars and manifests
+- two-layer storage in MinIO: raw landing zone (bronze) and Delta Lake tables (silver)
+- Delta Lake silver layer provides ACID writes, MERGE-based deduplication, and transaction-log versioning
 - Airflow orchestration for public-source ingestion, remote dataset artifacts, and the streaming scaffold
 
 ## Project Structure
@@ -70,7 +71,7 @@ docker compose exec airflow-webserver airflow dags unpause cybersecintel_api_exp
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_api_expansion_ingestion
 ```
 
-4. View task logs in Airflow UI and validate objects in MinIO bucket `landing`.
+4. View task logs in Airflow UI and validate objects in MinIO buckets `landing` (bronze) and `deltalake` (silver).
 
 What `cybersecintel_dataset_artifact_ingestion` does:
 - prepares landing-zone prefixes
@@ -79,10 +80,10 @@ What `cybersecintel_dataset_artifact_ingestion` does:
 - downloads the artifact automatically and lands it in MinIO with metadata and manifest lineage
 
 What `cybersecintel_api_expansion_ingestion` does:
-- ingests KEV, NVD, URLhaus, EPSS, and CIRCL directly to MinIO
+- ingests KEV, NVD, URLhaus, EPSS, and CIRCL to bronze (`s3://landing/`) and merges records into silver Delta tables (`s3://deltalake/`)
 - ingests ThreatFox when `ABUSE_CH_API_KEY` is available
 - skips Shodan cleanly unless `SHODAN_ENABLED=true`
-- writes the synthetic IDS stream scaffold to landing storage
+- writes the synthetic IDS stream scaffold to bronze and appends events to the `ids_alerts` Delta table
 
 ## CTU Remote Artifact Strategy
 The unstructured branch no longer depends on a manually staged local folder.
@@ -95,30 +96,76 @@ Profiles:
 - `subset`: first successful scenario only, preferring the smallest practical PCAP artifact
 - `full`: all scenarios `42..54`, preferring compressed captures for a stronger big-data story
 
-## Landing Layout
-- `s3://landing/structured/kev/ingest_date=YYYY-MM-DD/`
-- `s3://landing/structured/epss/ingest_date=YYYY-MM-DD/`
-- `s3://landing/semi_structured/nvd/ingest_date=YYYY-MM-DD/`
-- `s3://landing/semi_structured/urlhaus/ingest_date=YYYY-MM-DD/`
-- `s3://landing/semi_structured/circl_vulnlookup/ingest_date=YYYY-MM-DD/`
-- `s3://landing/semi_structured/threatfox/ingest_date=YYYY-MM-DD/`
-- `s3://landing/semi_structured/shodan_seeded/ingest_date=YYYY-MM-DD/`
-- `s3://landing/stream/ids_alerts/ingest_date=YYYY-MM-DD/hour=HH/`
-- `s3://landing/unstructured/pcap/source=ctu13/scenario=<n>/ingest_date=YYYY-MM-DD/`
-- `s3://landing/metadata/manifests/ingest_date=YYYY-MM-DD/`
+## Storage Layout
+
+### Bronze layer — `s3://landing/` (raw, immutable)
+- `structured/kev/ingest_date=YYYY-MM-DD/`
+- `structured/epss/ingest_date=YYYY-MM-DD/`
+- `semi_structured/nvd/ingest_date=YYYY-MM-DD/`
+- `semi_structured/urlhaus/ingest_date=YYYY-MM-DD/`
+- `semi_structured/circl_vulnlookup/ingest_date=YYYY-MM-DD/`
+- `semi_structured/threatfox/ingest_date=YYYY-MM-DD/`
+- `semi_structured/shodan_seeded/ingest_date=YYYY-MM-DD/`
+- `stream/ids_alerts/ingest_date=YYYY-MM-DD/hour=HH/`
+- `unstructured/pcap/source=ctu13/scenario=<n>/ingest_date=YYYY-MM-DD/`
+- `metadata/manifests/ingest_date=YYYY-MM-DD/`
 
 Each ingested artifact has:
 - raw source-native payload
 - sidecar metadata file (`*.meta.json`)
 - manifest entry (`jsonl`) for traceability
 
+### Silver layer — `s3://deltalake/` (Delta tables)
+
+Each source gets its own Delta table. The transaction log (`_delta_log/`) records every write as a numbered commit, enabling version history and time travel.
+
+| Table | Merge key | Notes |
+|-------|-----------|-------|
+| `kev/` | `cveID` | CISA Known Exploited Vulnerabilities |
+| `nvd/` | `cve_id` | NVD CVE details (flattened) |
+| `epss/` | `cve` + `date` | EPSS scores change daily |
+| `urlhaus/` | `id` | URLhaus malicious URLs |
+| `threatfox/` | `id` | ThreatFox IOCs |
+| `circl_vulnlookup/` | `cve_id` | CIRCL CVE enrichments |
+| `shodan_seeded/` | `ip_str` | Shodan host data |
+| `ids_alerts/` | *(append-only)* | Synthetic IDS stream events |
+
+PCAP files remain in bronze only — binary data has no Delta equivalent.
+
+Re-running a DAG will MERGE into the existing Delta table: matching records are updated, new records are inserted, and the `_delta_log/` gains one new commit. No duplicate rows are created.
+
 ## Validation
-Open `http://localhost:9001`, log in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`, and check the `landing` bucket for:
+Open `http://localhost:9001`, log in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`, and check:
+
+**Bronze** (`landing` bucket):
 - `structured/`
 - `semi_structured/`
 - `stream/`
 - `unstructured/pcap/source=ctu13/`
 - `metadata/manifests/`
+
+**Silver** (`deltalake` bucket):
+- `kev/_delta_log/` — transaction log (one JSON commit per run)
+- `kev/ingest_date=YYYY-MM-DD/` — Parquet data files
+- (same pattern for `nvd/`, `epss/`, `urlhaus/`, etc.)
+
+To inspect a Delta table from Python:
+```python
+from deltalake import DeltaTable
+
+storage_options = {
+    "endpoint_url": "http://localhost:9000",
+    "access_key_id": "minioadmin",
+    "secret_access_key": "minioadmin",
+    "allow_http": "true",
+    "AWS_S3_ALLOW_UNSAFE_RENAME": "true",
+    "AWS_ALLOW_HTTP": "true",
+}
+dt = DeltaTable("s3://deltalake/kev", storage_options=storage_options)
+print(dt.version())   # current version number
+print(dt.history())   # all commits
+df = dt.to_pandas()   # read current state
+```
 
 ## Report Build
 To rebuild the delivery PDF:

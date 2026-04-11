@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.http_utils import fetch_bytes
 from ingestion.common.landing_utils import (
     ingest_date_str,
@@ -74,10 +75,15 @@ def run(base_dir: Path, timeout_seconds: int, retries: int) -> dict[str, str | i
     raw_written = storage.write_bytes(raw_relative, payload)
 
     record_count = None
+    delta_records: list[dict] = []
     if extension == "json":
         json_payload = json.loads(payload.decode("utf-8"))
         vulnerabilities = json_payload.get("vulnerabilities", [])
         record_count = len(vulnerabilities)
+        delta_records = [
+            {**v, "ingest_date": ingest_date, "retrieved_at_utc": retrieved_at.isoformat()}
+            for v in vulnerabilities
+        ]
 
     metadata = {
         "source_id": SOURCE_ID,
@@ -97,6 +103,15 @@ def run(base_dir: Path, timeout_seconds: int, retries: int) -> dict[str, str | i
         ingest_date=ingest_date,
         entry=metadata,
     )
+
+    if delta_records:
+        DeltaLakeStorage.from_env().write_or_merge(
+            "kev",
+            delta_records,
+            merge_keys=["cveID"],
+            partition_by=["ingest_date"],
+        )
+
     return {
         "source": SOURCE_ID,
         "landing_path": raw_written.landing_path,

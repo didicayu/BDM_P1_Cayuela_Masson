@@ -9,6 +9,7 @@ import os
 import time
 from pathlib import Path
 
+from ingestion.common.delta_storage import DeltaLakeStorage
 from ingestion.common.http_utils import build_url, fetch_bytes
 from ingestion.common.landing_utils import (
     ingest_date_str,
@@ -125,6 +126,30 @@ def run(
         total_records += page_count
         total_results = parsed.get("totalResults", total_results)
         pages_ingested += 1
+
+        delta_records = []
+        for v in vulnerabilities:
+            cve = v.get("cve", {})
+            descriptions = cve.get("descriptions", [])
+            description_en = next(
+                (d.get("value") for d in descriptions if d.get("lang") == "en"), None
+            )
+            delta_records.append({
+                "cve_id": cve.get("id"),
+                "published": cve.get("published"),
+                "last_modified": cve.get("lastModified"),
+                "vuln_status": cve.get("vulnStatus"),
+                "description_en": description_en,
+                "ingest_date": ingest_date,
+                "retrieved_at_utc": retrieved_at.isoformat(),
+            })
+        if delta_records:
+            DeltaLakeStorage.from_env().write_or_merge(
+                "nvd",
+                delta_records,
+                merge_keys=["cve_id"],
+                partition_by=["ingest_date"],
+            )
 
         metadata = {
             "source_id": SOURCE_ID,

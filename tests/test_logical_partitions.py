@@ -57,6 +57,8 @@ class LogicalPartitionTests(unittest.TestCase):
             ), patch(
                 "ingestion.batch.circl_vulnlookup_ingest.fetch_bytes",
                 return_value=b'{"id":"CVE-2026-0001"}',
+            ), patch(
+                "ingestion.batch.circl_vulnlookup_ingest.DeltaLakeStorage",
             ):
                 result = run_circl(
                     base_dir=base_dir,
