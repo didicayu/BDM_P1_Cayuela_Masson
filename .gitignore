@@ -9,4 +9,3 @@ data/minio/
 data/postgres/
 .DS_Store
 orchestration/airflow/logs/
-docs/p2_1_delivery/
