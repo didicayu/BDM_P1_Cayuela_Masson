@@ -194,6 +194,18 @@ docker compose exec kafka kafka-run-class kafka.tools.GetOffsetShell \
   --broker-list kafka:29092 --topic ids.alerts --time -1
 ```
 
+## P2.2 Trusted, Exploitation, and Consumption Checkpoint
+
+After the P1 ingestion tables exist, run the new P2 follow-up DAGs:
+
+```bash
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_trusted_zone
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_exploitation_zone
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_consumption_exports
+```
+
+These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, analyst-ready Exploitation Zone assets in `s3://exploitation/`, and CSV/JSON/HTML consumption files under `consumption/outputs/`. The same stages can be run locally with `python -m trusted.run_trusted`, `python -m exploitation.run_exploitation --warm`, and `python -m consumption.run_exports`.
+
 ## Report Build
 
 To rebuild the final P1 delivery PDF:

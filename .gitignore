@@ -5,7 +5,11 @@ __pycache__/
 .venv/
 data/landing/
 data/deltalake/
+data/trusted/
+data/exploitation/
 data/minio/
 data/postgres/
+consumption/outputs/*
+!consumption/outputs/.gitkeep
 .DS_Store
 orchestration/airflow/logs/

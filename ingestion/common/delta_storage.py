@@ -1,8 +1,10 @@
-"""Delta Lake storage abstraction for the silver landing layer.
+"""Delta Lake storage abstraction for lakehouse zones.
 
 Architecture (mirrors deltalake_demo):
   Bronze  s3://landing/       raw immutable JSON/CSV/PCAP  (LandingStorage)
   Silver  s3://deltalake/     typed Delta tables            (DeltaLakeStorage)
+  Trusted s3://trusted/       cleaned Delta tables
+  Gold    s3://exploitation/  analyst-ready Delta assets
 """
 
 from __future__ import annotations
@@ -55,6 +57,43 @@ class DeltaLakeStorage:
         bucket = os.getenv("DELTA_BUCKET", "deltalake")
         local_root_str = os.getenv("DELTA_LOCAL_ROOT", "").strip()
         local_root = Path(local_root_str) if local_root_str else Path("data/deltalake")
+        endpoint_url = os.getenv("MINIO_ENDPOINT_URL", "http://minio:9000")
+        access_key = os.getenv("MINIO_ACCESS_KEY", os.getenv("MINIO_ROOT_USER", "minioadmin"))
+        secret_key = os.getenv("MINIO_SECRET_KEY", os.getenv("MINIO_ROOT_PASSWORD", "minioadmin"))
+        secure = _bool_env("MINIO_SECURE", False)
+        return cls(
+            backend=backend,
+            bucket=bucket,
+            local_root=local_root,
+            endpoint_url=endpoint_url,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=secure,
+        )
+
+    @classmethod
+    def from_env_bucket(
+        cls,
+        bucket_env: str,
+        default_bucket: str,
+        *,
+        local_root_env: str | None = None,
+    ) -> "DeltaLakeStorage":
+        """Build storage for a named lakehouse zone.
+
+        The original ``from_env`` method remains the P1 silver/landing Delta
+        contract. P2 adds separate trusted and exploitation buckets while
+        keeping the same MinIO credentials and local-mode behavior.
+        """
+        backend = os.getenv("LANDING_BACKEND", "minio").strip().lower()
+        bucket = os.getenv(bucket_env, default_bucket).strip() or default_bucket
+        local_override = os.getenv(local_root_env or "", "").strip() if local_root_env else ""
+        if local_override:
+            local_root = Path(local_override)
+        elif backend == "local":
+            local_root = Path("data") / bucket
+        else:
+            local_root = Path("data") / bucket
         endpoint_url = os.getenv("MINIO_ENDPOINT_URL", "http://minio:9000")
         access_key = os.getenv("MINIO_ACCESS_KEY", os.getenv("MINIO_ROOT_USER", "minioadmin"))
         secret_key = os.getenv("MINIO_SECRET_KEY", os.getenv("MINIO_ROOT_PASSWORD", "minioadmin"))
@@ -133,6 +172,27 @@ class DeltaLakeStorage:
                 out[k] = v
         return out
 
+    @staticmethod
+    def _records_for_delta(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Return records that Delta Lake can infer without Null-only columns."""
+        if not records:
+            return records
+        columns = {key for record in records for key in record}
+        null_only = {
+            column
+            for column in columns
+            if all(record.get(column) is None for record in records)
+        }
+        if not null_only:
+            return records
+        normalized: list[dict[str, Any]] = []
+        for record in records:
+            out = dict(record)
+            for column in null_only:
+                out[column] = ""
+            normalized.append(out)
+        return normalized
+
     # ── Core write/merge ───────────────────────────────────────────────────────
 
     def write_or_merge(
@@ -178,7 +238,7 @@ class DeltaLakeStorage:
         uri = self._table_uri(table_name)
         opts: dict[str, str] | None = self._storage_options() if self.backend != "local" else None
 
-        table = pa.Table.from_pylist(records)
+        table = pa.Table.from_pylist(self._records_for_delta(records))
 
         table_exists = DeltaTable.is_deltatable(uri, storage_options=opts)
 
@@ -216,3 +276,62 @@ class DeltaLakeStorage:
             )
 
         return len(records)
+
+    def overwrite(
+        self,
+        table_name: str,
+        records: list[dict[str, Any]],
+        partition_by: list[str] | None = None,
+    ) -> int:
+        """Overwrite a Delta table with *records*.
+
+        P2 zone materializations are checkpoint tables. Overwrite semantics make
+        reruns deterministic and keep follow-up deliverables idempotent.
+        """
+        try:
+            import pyarrow as pa
+            from deltalake import write_deltalake
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "deltalake and pyarrow are required for the Delta Lake backend. "
+                "Install them with: pip install deltalake pyarrow"
+            ) from exc
+
+        if not records:
+            self.ensure_bucket()
+            return 0
+
+        self.ensure_bucket()
+        uri = self._table_uri(table_name)
+        opts: dict[str, str] | None = self._storage_options() if self.backend != "local" else None
+        table = pa.Table.from_pylist(self._records_for_delta(records))
+        write_deltalake(
+            uri,
+            table,
+            mode="overwrite",
+            partition_by=partition_by,
+            storage_options=opts,
+            schema_mode="overwrite",
+        )
+        return len(records)
+
+    def read_records(self, table_name: str) -> list[dict[str, Any]]:
+        """Read a Delta table as Python dictionaries.
+
+        Missing tables return an empty list so downstream P2 DAGs can run
+        against partial P1 data and still prove the zone wiring.
+        """
+        try:
+            from deltalake import DeltaTable
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "deltalake and pyarrow are required for the Delta Lake backend. "
+                "Install them with: pip install deltalake pyarrow"
+            ) from exc
+
+        uri = self._table_uri(table_name)
+        opts: dict[str, str] | None = self._storage_options() if self.backend != "local" else None
+        if not DeltaTable.is_deltatable(uri, storage_options=opts):
+            return []
+        table = DeltaTable(uri, storage_options=opts).to_pyarrow_table()
+        return table.to_pylist()
