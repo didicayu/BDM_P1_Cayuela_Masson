@@ -9,6 +9,44 @@ from pathlib import Path
 from typing import Any
 
 
+CSV_COLUMNS = {
+    "cve_prioritization": [
+        "cve_id",
+        "vuln_priority_score",
+        "kev_listed",
+        "epss_score",
+        "cvss_v3_score",
+        "vendor_project",
+        "product",
+        "date_added",
+        "due_date",
+    ],
+    "ioc_correlations": [
+        "ioc_value",
+        "ioc_source",
+        "ioc_type",
+        "malware_family",
+        "event_timestamp_utc",
+        "src_ip",
+        "dst_ip",
+        "signature",
+        "severity",
+        "ingest_date",
+    ],
+    "anomaly_flags": [
+        "event_timestamp_utc",
+        "src_ip",
+        "dst_ip",
+        "dst_port",
+        "severity",
+        "signature",
+        "anomaly_score",
+        "anomaly_reasons",
+        "ingest_date",
+    ],
+}
+
+
 def export_consumption_outputs(
     *,
     output_dir: Path,
@@ -28,9 +66,9 @@ def export_consumption_outputs(
         "soc_dashboard": output_dir / "soc_dashboard.html",
     }
 
-    _write_csv(files["cve_prioritization"], vuln_priority)
-    _write_csv(files["ioc_correlations"], ioc_correlations)
-    _write_csv(files["anomaly_flags"], anomaly_flags)
+    _write_csv(files["cve_prioritization"], vuln_priority, CSV_COLUMNS["cve_prioritization"])
+    _write_csv(files["ioc_correlations"], ioc_correlations, CSV_COLUMNS["ioc_correlations"])
+    _write_csv(files["anomaly_flags"], anomaly_flags, CSV_COLUMNS["anomaly_flags"])
     files["alert_trends"].write_text(json.dumps(alert_trends, indent=2, sort_keys=True), encoding="utf-8")
     files["soc_dashboard"].write_text(
         _dashboard_html(
@@ -54,8 +92,9 @@ def export_consumption_outputs(
     }
 
 
-def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    columns = sorted({key for row in rows for key in row})
+def _write_csv(path: Path, rows: list[dict[str, Any]], preferred_columns: list[str]) -> None:
+    row_columns = sorted({key for row in rows for key in row})
+    columns = preferred_columns + [column for column in row_columns if column not in preferred_columns]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns)
         writer.writeheader()

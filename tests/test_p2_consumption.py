@@ -22,6 +22,7 @@ class ConsumptionExportTests(unittest.TestCase):
 
             self.assertEqual(result["files_written"], 5)
             self.assertTrue((Path(temp_dir) / "cve_prioritization.csv").exists())
+            self.assertTrue((Path(temp_dir) / "ioc_correlations.csv").read_text().startswith("ioc_value,"))
             self.assertTrue((Path(temp_dir) / "alert_trends.json").exists())
             self.assertTrue((Path(temp_dir) / "soc_dashboard.html").exists())
 

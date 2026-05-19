@@ -47,10 +47,10 @@ cd BDM_P1_Cayuela_Masson
 cp .env.example .env
 ```
 
-Build the custom Airflow image and start the stack:
+Build the shared custom Airflow image and start the stack:
 
 ```bash
-docker compose build airflow-webserver airflow-scheduler airflow-init
+docker compose build airflow-webserver
 docker compose up -d minio zookeeper kafka postgres
 docker compose run --rm airflow-init
 docker compose up -d airflow-webserver airflow-scheduler
@@ -61,8 +61,8 @@ Service endpoints:
 | Service         | URL / Address                       |
 |-----------------|-------------------------------------|
 | Airflow UI      | `http://localhost:8080`             |
-| MinIO Console   | `http://localhost:9001`             |
-| MinIO API       | `http://localhost:9000`             |
+| MinIO Console   | `http://localhost:${MINIO_CONSOLE_PORT:-9001}` |
+| MinIO API       | `http://localhost:${MINIO_API_PORT:-9000}` |
 | Kafka bootstrap | `localhost:9092`                    |
 | Postgres        | `localhost:${POSTGRES_PORT:-5433}`  |
 

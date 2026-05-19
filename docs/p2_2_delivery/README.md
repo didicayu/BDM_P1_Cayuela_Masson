@@ -19,7 +19,7 @@ make -C docs/p2_2_delivery rebuild
 Start the P1 stack and run ingestion first, then trigger the P2 DAGs:
 
 ```bash
-docker compose build airflow-webserver airflow-scheduler airflow-init
+docker compose build airflow-webserver
 docker compose up -d minio zookeeper kafka postgres
 docker compose run --rm airflow-init
 docker compose up -d airflow-webserver airflow-scheduler
@@ -43,4 +43,3 @@ Inspect outputs in MinIO:
 - `s3://trusted/`
 - `s3://exploitation/`
 - `consumption/outputs/`
-
