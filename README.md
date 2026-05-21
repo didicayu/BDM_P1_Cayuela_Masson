@@ -1,6 +1,6 @@
-# CyberSecIntel — BDM P1 Final Delivery
+# CyberSecIntel — BDM P2 Final Delivery
 
-A cybersecurity data platform for small SOC workflows, built as the P1 deliverable for Big Data Management at UPC. The platform automates ingestion of vulnerability intelligence, exploit-probability scores, IOC feeds, CTU-13 packet captures, synthetic IDS records, and replay-derived Suricata events. It combines scheduled batch ingestion with a Kafka-backed hot path, stores raw source-native assets in MinIO (bronze), and materializes queryable Delta Lake tables (silver).
+A cybersecurity data platform for small SOC workflows, built as the P2 final deliverable for Big Data Management at UPC. The platform automates ingestion of vulnerability intelligence, exploit-probability scores, IOC feeds, CTU-13 packet captures, synthetic IDS records, and replay-derived Suricata events. P2 completes the lakehouse pipeline with Trusted Zone cleaning, Exploitation Zone data products, ML anomaly prediction, analyst-facing consumption outputs, and governance artifacts for cataloging, lineage, and quality metrics.
 
 **Authors:** Dídac Cayuela and Sindri Masson
 
@@ -20,14 +20,16 @@ A cybersecurity data platform for small SOC workflows, built as the P1 deliverab
 │       ├── requirements-airflow.txt
 │       └── dags/                   # Airflow DAG definitions
 ├── config/             # Source configuration and CTU discovery rules
-├── tests/              # Unit tests (partitions, optional sources, remote PCAP, replay)
+├── tests/              # Unit tests (ingestion, replay, P2 zones, ML, consumption, governance)
+├── governance/          # P2 data product catalog, lineage, and quality metrics
 ├── docs/
+│   ├── p2_final_delivery/       # Final P2 report (LaTeX source + PDF)
 │   ├── p1_final_delivery/          # Final P1 report (LaTeX source + PDF)
 │   ├── p1_2_delivery/              # Earlier P1.2 report and architecture diagram
 │   └── pcap_replay.md             # PCAP replay runbook
 ├── docker-compose.yml
 ├── .env.example
-└── DELIVERY_MANIFEST.md
+└── README.md
 ```
 
 ## Prerequisites
@@ -160,7 +162,7 @@ Re-running a DAG merges into existing Delta tables — matching records are upda
 .venv/bin/python -m unittest discover -s tests
 ```
 
-The test suite covers PCAP catalog construction, candidate selection, EVE normalization, compressed artifact staging, Kafka publishing, logical partitions, optional source handling, and replay edge cases (14 tests).
+The test suite covers PCAP catalog construction, candidate selection, EVE normalization, compressed artifact staging, Kafka publishing, logical partitions, optional source handling, replay edge cases, P2 zone transformations, ML anomaly scoring, consumption exports, and governance artifacts (23 tests).
 
 ## Validation
 
@@ -194,9 +196,9 @@ docker compose exec kafka kafka-run-class kafka.tools.GetOffsetShell \
   --broker-list kafka:29092 --topic ids.alerts --time -1
 ```
 
-## P2.2 Trusted, Exploitation, and Consumption Checkpoint
+## P2 Final Trusted, Exploitation, Consumption, and Governance
 
-After the P1 ingestion tables exist, run the new P2 follow-up DAGs:
+After the P1 ingestion tables exist, run the P2 DAGs:
 
 ```bash
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_trusted_zone
@@ -204,14 +206,24 @@ docker compose exec airflow-webserver airflow dags trigger cybersecintel_exploit
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_consumption_exports
 ```
 
-These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, analyst-ready Exploitation Zone assets in `s3://exploitation/`, and CSV/JSON/HTML consumption files under `consumption/outputs/`. The same stages can be run locally with `python -m trusted.run_trusted`, `python -m exploitation.run_exploitation --warm`, and `python -m consumption.run_exports`.
+These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, analyst-ready Exploitation Zone assets in `s3://exploitation/`, a trained ML anomaly model, and CSV/JSON/HTML consumption files under `consumption/outputs/`. The same stages can be run locally with `python -m trusted.run_trusted`, `python -m exploitation.run_exploitation --warm`, and `python -m consumption.run_exports`.
+
+P2 also writes governance outputs:
+
+| Table | Location | Purpose |
+|-------|----------|---------|
+| `governance_data_product_catalog` | `s3://exploitation/` | Data product domain, owner, storage path, upstream assets, quality rules, access policy, and retention policy |
+| `governance_lineage` | `s3://trusted/` and `s3://exploitation/` | Run-level source-to-target lineage for Trusted, Exploitation, warm-path, and Consumption tasks |
+| `governance_quality_metrics` | `s3://trusted/` and `s3://exploitation/` | Rows read/written/rejected, warning counts, and consumption output counts |
+
+The ML artifact is recorded in `s3://exploitation/ml_anomaly_model` and written as JSON under `models/ids_anomaly_detector/model.json`.
 
 ## Report Build
 
-To rebuild the final P1 delivery PDF:
+To rebuild the final P2 delivery PDF:
 
 ```bash
-make -C docs/p1_final_delivery rebuild
+make -C docs/p2_final_delivery rebuild
 ```
 
 ## Stop Services

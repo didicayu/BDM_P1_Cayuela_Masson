@@ -56,6 +56,8 @@ def export_consumption_outputs(
     alert_trends: list[dict[str, Any]],
     top_signatures: list[dict[str, Any]],
     top_source_ips: list[dict[str, Any]],
+    top_destination_ips: list[dict[str, Any]],
+    ml_model: list[dict[str, Any]],
 ) -> dict[str, str | int]:
     output_dir.mkdir(parents=True, exist_ok=True)
     files = {
@@ -76,8 +78,10 @@ def export_consumption_outputs(
             alert_trends=alert_trends,
             top_signatures=top_signatures,
             top_source_ips=top_source_ips,
+            top_destination_ips=top_destination_ips,
             anomaly_flags=anomaly_flags,
             ioc_correlations=ioc_correlations,
+            ml_model=ml_model,
         ),
         encoding="utf-8",
     )
@@ -88,6 +92,7 @@ def export_consumption_outputs(
         "ioc_rows": len(ioc_correlations),
         "anomaly_rows": len(anomaly_flags),
         "alert_trend_rows": len(alert_trends),
+        "top_destination_rows": len(top_destination_ips),
         "files_written": len(files),
     }
 
@@ -108,9 +113,12 @@ def _dashboard_html(
     alert_trends: list[dict[str, Any]],
     top_signatures: list[dict[str, Any]],
     top_source_ips: list[dict[str, Any]],
+    top_destination_ips: list[dict[str, Any]],
     anomaly_flags: list[dict[str, Any]],
     ioc_correlations: list[dict[str, Any]],
+    ml_model: list[dict[str, Any]],
 ) -> str:
+    model = ml_model[0] if ml_model else {}
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -132,6 +140,8 @@ def _dashboard_html(
     <div class="metric"><strong>Prioritized CVEs</strong><br>{len(vuln_priority)}</div>
     <div class="metric"><strong>IOC Matches</strong><br>{len(ioc_correlations)}</div>
     <div class="metric"><strong>Anomaly Flags</strong><br>{len(anomaly_flags)}</div>
+    <div class="metric"><strong>ML Model Rows</strong><br>{html.escape(str(model.get("trained_rows", 0)))}</div>
+    <div class="metric"><strong>ML Threshold</strong><br>{html.escape(str(model.get("threshold", "")))}</div>
   </div>
   <h2>Top Vulnerabilities</h2>
   {_table(vuln_priority[:10], ["cve_id", "vuln_priority_score", "kev_listed", "epss_score", "cvss_v3_score"])}
@@ -141,6 +151,10 @@ def _dashboard_html(
   {_table(top_signatures[:10], ["signature", "event_count"])}
   <h2>Top Source IPs</h2>
   {_table(top_source_ips[:10], ["src_ip", "event_count"])}
+  <h2>Top Destination IPs</h2>
+  {_table(top_destination_ips[:10], ["dst_ip", "event_count"])}
+  <h2>ML Anomaly Feed</h2>
+  {_table(anomaly_flags[:10], ["event_timestamp_utc", "src_ip", "dst_ip", "ml_score", "ml_threshold", "anomaly_reasons"])}
 </body>
 </html>
 """

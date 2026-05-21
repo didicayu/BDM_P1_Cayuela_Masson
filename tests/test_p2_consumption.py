@@ -18,9 +18,12 @@ class ConsumptionExportTests(unittest.TestCase):
                 alert_trends=[{"day": "2026-05-09", "alert_count": 1}],
                 top_signatures=[],
                 top_source_ips=[],
+                top_destination_ips=[{"dst_ip": "10.0.0.2", "event_count": 1}],
+                ml_model=[{"trained_rows": 10, "threshold": 0.7}],
             )
 
             self.assertEqual(result["files_written"], 5)
+            self.assertEqual(result["top_destination_rows"], 1)
             self.assertTrue((Path(temp_dir) / "cve_prioritization.csv").exists())
             self.assertTrue((Path(temp_dir) / "ioc_correlations.csv").read_text().startswith("ioc_value,"))
             self.assertTrue((Path(temp_dir) / "alert_trends.json").exists())

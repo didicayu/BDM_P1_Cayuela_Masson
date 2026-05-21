@@ -1,0 +1,18 @@
+{
+  "feature_names": [
+    "severity",
+    "dst_port",
+    "src_port",
+    "src_ip_frequency",
+    "dst_ip_frequency",
+    "signature_frequency",
+    "is_remote_access_port"
+  ],
+  "ingest_date": "2026-05-20",
+  "mads_json": "{\"dst_ip_frequency\": 1.0, \"dst_port\": 1.0, \"is_remote_access_port\": 1.0, \"severity\": 1.0, \"signature_frequency\": 1.0, \"src_ip_frequency\": 1.0, \"src_port\": 1.0}",
+  "medians_json": "{\"dst_ip_frequency\": 0.0, \"dst_port\": 0.0, \"is_remote_access_port\": 0.0, \"severity\": 0.0, \"signature_frequency\": 12.23847691016419, \"src_ip_frequency\": 12.236252614031306, \"src_port\": 7.639161171659173}",
+  "model_type": "robust_unsupervised_anomaly_detector",
+  "threshold": 0.112618,
+  "trained_at_utc": "2026-05-20T19:43:45.849328+00:00",
+  "trained_rows": 212893
+}
