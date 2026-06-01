@@ -128,6 +128,13 @@ class DeltaLakeStorage:
             return str((self.local_root / table_name).resolve())
         return f"s3://{self.bucket}/{table_name}"
 
+    def table_uri(self, table_name: str, *, spark: bool = False) -> str:
+        """Return the table URI, optionally converted for Spark's S3A connector."""
+        uri = self._table_uri(table_name)
+        if spark and uri.startswith("s3://"):
+            return f"s3a://{uri.removeprefix('s3://')}"
+        return uri
+
     def _get_boto_client(self):
         if boto3 is None or Config is None:
             raise RuntimeError("boto3 and botocore are required for the MinIO backend.")

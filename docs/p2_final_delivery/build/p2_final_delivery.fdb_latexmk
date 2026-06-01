@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1779306326.26175 "src/p2_final_delivery.tex" "build/p2_final_delivery.pdf" "p2_final_delivery" 1779306326.92717 0
+["pdflatex"] 1780330187.17588 "src/p2_final_delivery.tex" "build/p2_final_delivery.pdf" "p2_final_delivery" 1780330187.82607 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1202520719 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc" 1202520719 2840 216e6e45ad352e2456e1149f28885bee ""
@@ -124,9 +124,9 @@
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1761644964 3345739 b970cfbc33d08a9f7ee663bfbdf04b8e ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "build/../assets/BDM_P2.drawio.png" 1779305074.35087 998688 79540cea7c6081133b3e7e4804aedf7f ""
-  "build/p2_final_delivery.aux" 1779306326.85537 2357 e37644fb1e83d59e8da22c854ac2dd0b "pdflatex"
-  "build/p2_final_delivery.out" 1779306326.85589 2677 731090436d6086d451a7002e8466e1e4 "pdflatex"
-  "src/p2_final_delivery.tex" 1779306321.20617 29673 22e48e67565573f4e5f2e622450c9d22 ""
+  "build/p2_final_delivery.aux" 1780330187.75813 2360 ca91b1fb8e819c7c4d4c16f11a6751f5 "pdflatex"
+  "build/p2_final_delivery.out" 1780330187.75857 2677 731090436d6086d451a7002e8466e1e4 "pdflatex"
+  "src/p2_final_delivery.tex" 1780329496.53823 33148 b937e5d2ea3e110f7100921a25c7224d ""
   (generated)
   "build/p2_final_delivery.aux"
   "build/p2_final_delivery.log"

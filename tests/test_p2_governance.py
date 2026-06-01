@@ -14,7 +14,12 @@ class GovernanceArtifactTests(unittest.TestCase):
         self.assertIn("ioc_correlations", products)
         self.assertIn("anomaly_flags", products)
         self.assertIn("ml_anomaly_model", products)
+        self.assertIn("sklearn_isolation_forest_model", products)
+        self.assertIn("model_joblib_artifact", products)
+        self.assertIn("warm_stream_aggregates", products)
+        self.assertIn("warm_enriched_alerts_spark", products)
         self.assertIn("consumption_outputs", products)
+        self.assertIn("grafana_serving_tables", products)
         self.assertEqual(products["vuln_enriched"]["domain"], "Vulnerability Intelligence")
         self.assertIn("quality_rules", products["vuln_enriched"])
 

@@ -15,6 +15,12 @@ def run_consumption_exports_task() -> dict[str, str | int]:
     return run_consumption_exports(Path("/opt/project/consumption/outputs"))
 
 
+def publish_grafana_serving_tables_task() -> dict[str, str | int]:
+    from consumption.grafana_postgres import publish_grafana_serving_tables
+
+    return publish_grafana_serving_tables()
+
+
 with DAG(
     dag_id="cybersecintel_consumption_exports",
     description="Export exploitation assets into analyst-facing CSV, JSON, and HTML files.",
@@ -33,3 +39,9 @@ with DAG(
         task_id="export_consumption_outputs",
         python_callable=run_consumption_exports_task,
     )
+    publish_grafana_serving_tables = PythonOperator(
+        task_id="publish_grafana_serving_tables",
+        python_callable=publish_grafana_serving_tables_task,
+    )
+
+    export_consumption_outputs >> publish_grafana_serving_tables
