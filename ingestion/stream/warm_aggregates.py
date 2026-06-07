@@ -6,6 +6,7 @@ import argparse
 import collections
 import datetime as dt
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -66,19 +67,30 @@ def compute_warm_stream_aggregates(
 def materialize_warm_stream_aggregates(
     *,
     strict_kafka: bool = False,
+    source: str | None = None,
     base_dir: Path = Path("data"),
 ) -> dict[str, int | str]:
     """Read warm alerts, compute aggregates, and write landing plus Delta assets."""
+    source_mode = (source or os.getenv("WARM_STREAM_SOURCE", "auto")).strip().lower()
+    if source_mode not in {"auto", "kafka", "delta"}:
+        raise ValueError("Warm stream source must be one of: auto, kafka, delta.")
+
     source_name = "kafka://ids.alerts"
-    try:
-        alerts = read_kafka_alerts()
-    except Exception as exc:
-        if strict_kafka:
-            raise
+    alerts: list[dict[str, Any]] = []
+    if source_mode == "delta":
         silver = DeltaLakeStorage.from_env()
         alerts = silver.read_records("ids_alerts")
-        source_name = f"s3://{silver.bucket}/ids_alerts fallback after Kafka skip: {type(exc).__name__}"
-    if not alerts:
+        source_name = f"s3://{silver.bucket}/ids_alerts explicit source"
+    else:
+        try:
+            alerts = read_kafka_alerts()
+        except Exception as exc:
+            if strict_kafka or source_mode == "kafka":
+                raise
+            silver = DeltaLakeStorage.from_env()
+            alerts = silver.read_records("ids_alerts")
+            source_name = f"s3://{silver.bucket}/ids_alerts fallback after Kafka skip: {type(exc).__name__}"
+    if not alerts and source_mode == "auto":
         silver = DeltaLakeStorage.from_env()
         alerts = silver.read_records("ids_alerts")
         source_name = f"s3://{silver.bucket}/ids_alerts fallback"
@@ -223,8 +235,14 @@ def _int(value: Any) -> int | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Materialize bounded warm stream aggregates.")
     parser.add_argument("--strict-kafka", action="store_true", help="Fail instead of falling back to Delta when Kafka is unavailable.")
+    parser.add_argument(
+        "--source",
+        choices=("auto", "kafka", "delta"),
+        default=None,
+        help="Select Kafka, Delta, or automatic Kafka-to-Delta fallback (default: WARM_STREAM_SOURCE or auto).",
+    )
     args = parser.parse_args()
-    result = materialize_warm_stream_aggregates(strict_kafka=args.strict_kafka)
+    result = materialize_warm_stream_aggregates(strict_kafka=args.strict_kafka, source=args.source)
     for key, value in result.items():
         print(f"{key}: {value}")
     return 0

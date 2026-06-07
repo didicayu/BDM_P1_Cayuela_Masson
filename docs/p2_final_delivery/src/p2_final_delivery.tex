@@ -12,6 +12,7 @@
 \usepackage{array}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{xurl}
 \usepackage{hyperref}
 \usepackage{float}
 
@@ -24,11 +25,11 @@
 \setlength{\parskip}{0.28em}
 \emergencystretch=3em
 \Urlmuskip=0mu plus 1mu\relax
-\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\code}[1]{\nolinkurl{#1}}
 
 \title{\vspace{-1.1cm}CyberSecIntel\\P2 Final Delivery\\Trusted Zone, Exploitation Zone, Consumption, and Governance}
 \author{D\'idac Cayuela and Sindri Masson\\Big Data Management -- Universitat Politecnica de Catalunya}
-\date{May 2026}
+\date{June 2026}
 
 \begin{document}
 \maketitle
@@ -40,19 +41,18 @@ CyberSecIntel is a cybersecurity data platform for small SOC workflows. P1 imple
 
 \textbf{Run order.}
 \begin{enumerate}
-  \item Copy configuration: \code{cp .env.example .env}; optional keys are \code{NVD_API_KEY}, \code{ABUSE_CH_API_KEY}, and \code{SHODAN_API_KEY}.
-  \item Start infrastructure: \code{docker compose build airflow-webserver}; \code{docker compose up -d minio zookeeper kafka postgres}; \code{docker compose run --rm airflow-init}; \code{docker compose up -d airflow-webserver airflow-scheduler}.
-  \item Run P1 ingestion: trigger \code{cybersecintel_api_expansion_ingestion}; optionally run \code{cybersecintel_dataset_artifact_ingestion} and \code{cybersecintel_pcap_replay}.
-  \item Run P2: trigger \code{cybersecintel_trusted_zone}, then \code{cybersecintel_warm_stream_aggregates}, then \code{cybersecintel_exploitation_zone}, then \code{cybersecintel_consumption_exports}. The consumption DAG also publishes the Grafana Postgres serving tables.
+  \item Copy configuration: \texttt{cp .env.example .env}; optional keys are \code{NVD_API_KEY}, \code{ABUSE_CH_API_KEY}, and \code{SHODAN_API_KEY}.
+  \item Start infrastructure: \texttt{docker compose build airflow-webserver}; \texttt{docker compose up -d minio zookeeper kafka postgres grafana}; \texttt{docker compose run {-}{-}rm airflow-init}; \texttt{docker compose up -d airflow-webserver airflow-scheduler}.
+  \item Trigger \code{cybersecintel_end_to_end}. This parent DAG waits for API ingestion, warm aggregate materialization, Trusted cleaning, Exploitation, and Consumption in that order. The Consumption DAG also publishes the Grafana Postgres serving tables.
+  \item Optionally run \code{cybersecintel_dataset_artifact_ingestion} and \code{cybersecintel_pcap_replay}; replay remains intentionally gated by \code{PCAP_REPLAY_ENABLED}.
 \end{enumerate}
 
-The P2 stages can also be executed locally after P1 Delta tables exist:
+The P2 stages can also be executed locally after P1 Delta tables exist. The helper
+translates Docker-internal service names to published localhost ports and uses Delta
+as the deterministic warm aggregate source:
 \begin{verbatim}
-python -m trusted.run_trusted
-python -m ingestion.stream.warm_aggregates
-python -m exploitation.run_exploitation --warm --spark-warm
-python -m consumption.run_exports
-python -m consumption.grafana_postgres
+scripts/run_p2_local.sh
+scripts/run_p2_local.sh --spark
 \end{verbatim}
 The outputs are inspected in MinIO buckets \code{s3://trusted/} and \code{s3://exploitation/}, local files under \code{consumption/outputs/}, and Grafana at \code{http://localhost:3000} after starting \code{postgres} and \code{grafana}.
 
@@ -263,7 +263,7 @@ C1--C2 Trusted & Separate \code{s3://trusted/} storage; per-source cleaning; rej
 C3--C4 Exploitation & Separate \code{s3://exploitation/} storage; joined, unified, correlated, flagged, Spark-enriched warm, and KPI assets; Exploitation Airflow DAG.\\
 C5 Consumption & Functional CSV, JSON, HTML, and Grafana outputs generated from exploitation data; dashboards include CVEs, IOC matches, ML anomaly feed, alert trends, source IPs, and destination IPs; Kafka topics remain available for live event inspection.\\
 C6 Architecture & Updated P2 diagram and Option 1 rationale; cold, warm, hot, Spark, and Grafana serving paths described.\\
-C7 Orchestration/containerization & P1 and P2 DAGs run in the Docker Compose Airflow stack; MinIO/Kafka/Postgres/Grafana are containerized.\\
+C7 Orchestration & \code{cybersecintel_end_to_end} waits for ingestion, warm aggregates, Trusted, Exploitation, and Consumption in dependency order; MinIO/Kafka/Postgres/Grafana are containerized.\\
 C8 Organization & Code is separated by stage: \code{trusted/}, \code{exploitation/}, \code{consumption/}, \code{governance/}, and \code{orchestration/airflow/dags/}.\\
 Governance & Implemented catalog, lineage, and quality metrics with SOC-specific product definitions for data products, model artifacts, Spark outputs, warm aggregates, and Grafana serving tables.\\
 \bottomrule
@@ -271,8 +271,9 @@ Governance & Implemented catalog, lineage, and quality metrics with SOC-specific
 
 The final verification run checks the following concrete evidence:
 \begin{itemize}
-  \item Unit test suite covers the Python fallback path, Isolation Forest backend, warm aggregates, Grafana provisioning, Spark job configuration, and governance catalog.
-  \item Docker Compose configuration includes MinIO, Kafka, Postgres, Airflow, and Grafana.
+  \item The 40-test unit suite covers the Python fallback path, Isolation Forest backend, timestamp-preserving Trusted deduplication, keyed Delta merge repair, warm aggregates, Grafana provisioning, Spark job configuration, orchestration order, and governance catalog.
+  \item Docker Compose includes MinIO, Kafka, Postgres, Airflow, and Grafana. The rebuilt Airflow image includes Java 17, Suricata, PySpark, Delta, and the Kafka connector; the Spark streaming task fails loudly rather than masking a missing runtime.
+  \item The parent \code{cybersecintel_end_to_end} DAG enforces the complete required stage order and waits for each child DAG to succeed.
   \item Warm aggregate DAG writes landing files and a Delta \code{warm_stream_aggregates} table.
   \item Exploitation DAG writes the Isolation Forest metadata and anomaly rows with model scores and labels.
   \item Spark warm enrichment is wired as \code{spark_enrich_warm_alerts}; bounded Python enrichment remains available if the local Spark/Kafka runtime is unavailable.
@@ -284,16 +285,18 @@ Validation commands:
 \begin{verbatim}
 .venv/bin/python -m unittest discover -s tests
 docker compose config --quiet
-docker compose run --rm airflow-webserver airflow dags test \
-  cybersecintel_trusted_zone 2026-05-09
+docker compose build airflow-webserver airflow-scheduler airflow-init
+docker compose exec airflow-webserver airflow dags list-import-errors
 docker compose run --rm airflow-webserver airflow dags test \
   cybersecintel_warm_stream_aggregates 2026-05-09
+docker compose run --rm airflow-webserver airflow dags test \
+  cybersecintel_trusted_zone 2026-05-09
 docker compose run --rm airflow-webserver airflow dags test \
   cybersecintel_exploitation_zone 2026-05-09
 docker compose run --rm airflow-webserver airflow dags test \
   cybersecintel_consumption_exports 2026-05-09
-P2_ENGINE=spark python -m exploitation.run_exploitation --warm --spark-warm
-docker compose up -d postgres grafana
+scripts/run_p2_local.sh --spark
+scripts/build_delivery.sh
 \end{verbatim}
 
 The expected evidence is: Delta tables in \code{trusted}, \code{deltalake}, and \code{exploitation}; governance tables in both P2 buckets; Isolation Forest artifacts under \code{models/ids_anomaly_detector/}; five consumption files under \code{consumption/outputs/}; and a provisioned Grafana dashboard at \code{http://localhost:3000}.

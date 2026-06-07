@@ -19,6 +19,7 @@ A cybersecurity data platform for small SOC workflows, built as the P2 final del
 │       ├── Dockerfile              # Custom image with Suricata + ET Open ruleset
 │       ├── requirements-airflow.txt
 │       └── dags/                   # Airflow DAG definitions
+├── scripts/            # Host-side pipeline and delivery build helpers
 ├── config/             # Source configuration, CTU discovery rules, and Grafana provisioning
 ├── tests/              # Unit tests (ingestion, replay, P2 zones, ML, consumption, governance)
 ├── governance/          # P2 data product catalog, lineage, and quality metrics
@@ -118,6 +119,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 | `PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC` | `ids.alerts` | Topic for alert-compatible records |
 | `PCAP_REPLAY_KAFKA_STRICT` | `true` | Fails replay task on publish errors |
 | `KAFKA_BOOTSTRAP_SERVERS` | `kafka:29092` | Used by Airflow containers |
+| `WARM_STREAM_SOURCE` | `auto` | `auto` tries Kafka then Delta; `delta` gives a deterministic full-data rebuild |
 | `P2_ENGINE` | `python` | Set to `spark` to run Spark-backed Exploitation products with Python fallback |
 | `P2_TRUSTED_ENGINE` | — | Set to `spark` to run Spark-backed Trusted cleaning for KEV/EPSS/NVD |
 | `GRAFANA_PORT` | `3000` | Host port for Grafana |
@@ -204,16 +206,24 @@ docker compose exec kafka kafka-run-class kafka.tools.GetOffsetShell \
 
 ## P2 Final Trusted, Exploitation, Consumption, and Governance
 
-After the P1 ingestion tables exist, run the P2 DAGs:
+The parent DAG executes the required path in dependency order: API ingestion, warm
+aggregate materialization, Trusted cleaning, Exploitation products, and Consumption:
 
 ```bash
-docker compose exec airflow-webserver airflow dags trigger cybersecintel_trusted_zone
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_end_to_end
+```
+
+The CTU artifact and PCAP replay DAGs remain optional because replay is intentionally
+gated by `PCAP_REPLAY_ENABLED`. To run only P2 after P1 tables already exist, trigger:
+
+```bash
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_warm_stream_aggregates
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_trusted_zone
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_exploitation_zone
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_consumption_exports
 ```
 
-These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, warm aggregates in landing and Delta, analyst-ready Exploitation Zone assets in `s3://exploitation/`, a trained sklearn Isolation Forest model, CSV/JSON/HTML consumption files under `consumption/outputs/`, and Postgres serving tables for Grafana. The same stages can be run locally with `python -m trusted.run_trusted`, `python -m ingestion.stream.warm_aggregates`, `python -m exploitation.run_exploitation --warm --spark-warm`, `python -m consumption.run_exports`, and `python -m consumption.grafana_postgres`.
+These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, warm aggregates in landing and Delta, analyst-ready Exploitation Zone assets in `s3://exploitation/`, a trained sklearn Isolation Forest model, CSV/JSON/HTML consumption files under `consumption/outputs/`, and Postgres serving tables for Grafana.
 
 P2 also writes governance outputs:
 
@@ -227,12 +237,27 @@ The ML artifact is recorded in `s3://exploitation/ml_anomaly_model` and written 
 
 Grafana is provisioned from `config/grafana/provisioning/` and `config/grafana/dashboards/cybersecintel_soc.json`. It reads the `cybersecintel_consumption` Postgres schema populated by the consumption DAG.
 
+For a deterministic host-side rebuild, the helper translates Docker-internal service
+names to published localhost ports and uses the complete Delta IDS table for warm
+aggregates:
+
+```bash
+scripts/run_p2_local.sh
+scripts/run_p2_local.sh --spark
+```
+
 ## Report Build
 
 To rebuild the final P2 delivery PDF:
 
 ```bash
 make -C docs/p2_final_delivery rebuild
+```
+
+To rebuild the PDF and integrity-check the submission archive together:
+
+```bash
+scripts/build_delivery.sh
 ```
 
 ## Stop Services

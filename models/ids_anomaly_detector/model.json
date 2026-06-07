@@ -1,8 +1,8 @@
 {
   "contamination": 0.05,
   "decision_boundary": 0.0,
-  "decision_function_max": 0.25956,
-  "decision_function_min": -0.238923,
+  "decision_function_max": 0.288019,
+  "decision_function_min": -0.231328,
   "feature_names": [
     "severity",
     "src_port",
@@ -12,14 +12,14 @@
     "signature_frequency",
     "is_remote_access_port"
   ],
-  "ingest_date": "2026-06-01",
+  "ingest_date": "2026-06-07",
   "joblib_artifact_path": "models/ids_anomaly_detector/model.joblib",
   "model_backend": "isolation_forest",
   "model_type": "sklearn_isolation_forest",
   "random_state": 42,
-  "score_samples_max": -0.310667,
-  "score_samples_min": -0.80915,
+  "score_samples_max": -0.309192,
+  "score_samples_min": -0.828539,
   "threshold": 0.0,
-  "trained_at_utc": "2026-06-01T16:07:02.720333+00:00",
-  "trained_rows": 79201
+  "trained_at_utc": "2026-06-07T22:21:39.612877+00:00",
+  "trained_rows": 213493
 }

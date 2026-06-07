@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from exploitation.spark_jobs.materialize_products import SPARK_KPI_TABLES
 from exploitation.spark_jobs.warm_alert_enrichment import extract_cve_from_alert_fields
@@ -44,6 +45,14 @@ class SparkJobConfigurationTests(unittest.TestCase):
         self.assertIn("kpi_daily_alert_counts", SPARK_KPI_TABLES)
         self.assertIn("kpi_top_source_ips", SPARK_KPI_TABLES)
         self.assertEqual(SPARK_TRUSTED_TABLES, ("kev", "epss", "nvd"))
+
+    def test_airflow_image_and_dag_require_a_working_spark_runtime(self) -> None:
+        dockerfile = Path("orchestration/airflow/Dockerfile").read_text(encoding="utf-8")
+        dag = Path("orchestration/airflow/dags/exploitation_zone_dag.py").read_text(encoding="utf-8")
+
+        self.assertIn("openjdk-17-jre-headless", dockerfile)
+        self.assertIn("ENV JAVA_HOME=/opt/java", dockerfile)
+        self.assertIn("run_spark_warm_path(strict=True)", dag)
 
 
 if __name__ == "__main__":

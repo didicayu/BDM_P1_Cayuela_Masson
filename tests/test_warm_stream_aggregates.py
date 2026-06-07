@@ -3,11 +3,15 @@ from __future__ import annotations
 import unittest
 
 from exploitation.analytics import build_kpis
-from ingestion.stream.warm_aggregates import compute_warm_stream_aggregates
+from ingestion.stream.warm_aggregates import compute_warm_stream_aggregates, materialize_warm_stream_aggregates
 from trusted.cleaning import clean_table
 
 
 class WarmStreamAggregateTests(unittest.TestCase):
+    def test_materialization_rejects_unknown_source_mode(self) -> None:
+        with self.assertRaisesRegex(ValueError, "auto, kafka, delta"):
+            materialize_warm_stream_aggregates(source="unknown")
+
     def test_compute_warm_stream_aggregates_outputs_expected_products(self) -> None:
         rows = compute_warm_stream_aggregates(
             [

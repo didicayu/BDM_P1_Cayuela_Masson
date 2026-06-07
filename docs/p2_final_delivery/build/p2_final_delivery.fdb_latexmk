@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1780330187.17588 "src/p2_final_delivery.tex" "build/p2_final_delivery.pdf" "p2_final_delivery" 1780330187.82607 0
+["pdflatex"] 1780871478.60568 "src/p2_final_delivery.tex" "build/p2_final_delivery.pdf" "p2_final_delivery" 1780871479.32067 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1202520719 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc" 1202520719 2840 216e6e45ad352e2456e1149f28885bee ""
@@ -119,14 +119,15 @@
   "/usr/local/texlive/2025/texmf-dist/tex/latex/tools/tabularx.sty" 1717359999 7243 e5dac1240636811edb77568b81818372 ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/url/url.sty" 1388531844 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/xcolor/xcolor.sty" 1727642399 55384 b454dec21c2d9f45ec0b793f0995b992 ""
+  "/usr/local/texlive/2025/texmf-dist/tex/latex/xurl/xurl.sty" 1641763214 4675 e4b8c405820368c2dfb03526e16d725a ""
   "/usr/local/texlive/2025/texmf-dist/web2c/texmf.cnf" 1739380943 42148 61becc7c670cd061bb319c643c27fdd4 ""
   "/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1761645053 5467155 19efa205003f9ecad95fbbaa6ff24da1 ""
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1761644964 3345739 b970cfbc33d08a9f7ee663bfbdf04b8e ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "build/../assets/BDM_P2.drawio.png" 1779305074.35087 998688 79540cea7c6081133b3e7e4804aedf7f ""
-  "build/p2_final_delivery.aux" 1780330187.75813 2360 ca91b1fb8e819c7c4d4c16f11a6751f5 "pdflatex"
-  "build/p2_final_delivery.out" 1780330187.75857 2677 731090436d6086d451a7002e8466e1e4 "pdflatex"
-  "src/p2_final_delivery.tex" 1780329496.53823 33148 b937e5d2ea3e110f7100921a25c7224d ""
+  "build/p2_final_delivery.aux" 1780871479.24325 2360 ca91b1fb8e819c7c4d4c16f11a6751f5 "pdflatex"
+  "build/p2_final_delivery.out" 1780871479.24375 2677 731090436d6086d451a7002e8466e1e4 "pdflatex"
+  "src/p2_final_delivery.tex" 1780871470.80431 33683 1673291e6bcb6b699fd2ea731afc142a ""
   (generated)
   "build/p2_final_delivery.aux"
   "build/p2_final_delivery.log"

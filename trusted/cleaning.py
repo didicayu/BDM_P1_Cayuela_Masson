@@ -245,6 +245,7 @@ def _parse_datetime(value: Any) -> dt.datetime | None:
         return None
     if raw.endswith("Z"):
         raw = f"{raw[:-1]}+00:00"
+    raw = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", raw)
     for candidate in (raw, raw[:19], raw[:10]):
         try:
             parsed = dt.datetime.fromisoformat(candidate)

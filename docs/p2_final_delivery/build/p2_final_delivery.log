@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.28)  1 JUN 2026 18:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.28)  8 JUN 2026 00:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -283,6 +283,13 @@ Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1370.
 Package xcolor Info: Model `Gray' substituted by `gray' on input line 1371.
 Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
 )
+(/usr/local/texlive/2025/texmf-dist/tex/latex/xurl/xurl.sty
+Package: xurl 2022/01/09 v 0.10 modify URL breaks
+
+(/usr/local/texlive/2025/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip18
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+))
 (/usr/local/texlive/2025/texmf-dist/tex/latex/hyperref/hyperref.sty
 Package: hyperref 2024-11-05 v7.01l Hypertext links for LaTeX
 
@@ -357,11 +364,6 @@ Package hyperref Info: Backreferencing OFF on input line 4177.
 Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
 Package hyperref Info: Bookmarks ON on input line 4424.
 \c@Hy@tempcnt=\count299
-
-(/usr/local/texlive/2025/texmf-dist/tex/latex/url/url.sty
-\Urlmuskip=\muskip18
-Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
-)
 LaTeX Info: Redefining \url on input line 4763.
 \XeTeXLinkMargin=\dimen184
 
@@ -422,9 +424,9 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \@float@everytoks=\toks32
 \@floatcapt=\box59
 )
-Package hyperref Info: Option `colorlinks' set `true' on input line 19.
-Package hyperref Info: Option `hypertexnames' set `false' on input line 19.
-LaTeX Font Info:    Trying to load font information for T1+lmr on input line 33
+Package hyperref Info: Option `colorlinks' set `true' on input line 20.
+Package hyperref Info: Option `hypertexnames' set `false' on input line 20.
+LaTeX Font Info:    Trying to load font information for T1+lmr on input line 34
 .
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/t1lmr.fd
@@ -438,24 +440,24 @@ File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 (build/p2_final_delivery.aux)
 \openout1 = `p2_final_delivery.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 34.
+LaTeX Font Info:    ... okay on input line 34.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -464,7 +466,7 @@ LaTeX Font Info:    ... okay on input line 33.
 * paper: a4paper
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
-* modes:
+* modes: 
 * h-part:(L,W,R)=(52.63777pt, 492.23233pt, 52.63777pt)
 * v-part:(T,H,B)=(52.63777pt, 739.7713pt, 52.63777pt)
 * \paperwidth=597.50787pt
@@ -491,25 +493,25 @@ LaTeX Font Info:    ... okay on input line 33.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Info: Redefining \microtypecontext on input line 33.
-Package microtype Info: Applying patch `item' on input line 33.
-Package microtype Info: Applying patch `toc' on input line 33.
-Package microtype Info: Applying patch `eqnum' on input line 33.
-Package microtype Info: Applying patch `footnote' on input line 33.
-Package microtype Info: Applying patch `verbatim' on input line 33.
-LaTeX Info: Redefining \microtypesetup on input line 33.
+LaTeX Info: Redefining \microtypecontext on input line 34.
+Package microtype Info: Applying patch `item' on input line 34.
+Package microtype Info: Applying patch `toc' on input line 34.
+Package microtype Info: Applying patch `eqnum' on input line 34.
+Package microtype Info: Applying patch `footnote' on input line 34.
+Package microtype Info: Applying patch `verbatim' on input line 34.
+LaTeX Info: Redefining \microtypesetup on input line 34.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
 Package microtype Info: Automatic font expansion enabled (level 2),
 (microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
 Package microtype Info: Using default expansion set `alltext-nott'.
-LaTeX Info: Redefining \showhyphens on input line 33.
+LaTeX Info: Redefining \showhyphens on input line 34.
 Package microtype Info: No adjustment of tracking.
 Package microtype Info: No adjustment of interword spacing.
 Package microtype Info: No adjustment of character kerning.
 (/usr/local/texlive/2025/texmf-dist/tex/latex/microtype/mt-cmr.cfg
-File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
+File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
 (/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -534,44 +536,44 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-Package hyperref Info: Link coloring ON on input line 33.
+Package hyperref Info: Link coloring ON on input line 34.
 
 (build/p2_final_delivery.out) (build/p2_final_delivery.out)
 \@outlinefile=\write3
 \openout3 = `p2_final_delivery.out'.
 
 LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 3
-5.
+6.
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 3
-5.
+6.
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line
-35.
+LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
+36.
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OMX+lmex on input line
-35.
+LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
+36.
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 35.
+(Font)              <12> on input line 36.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 35.
+(Font)              <8> on input line 36.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 35.
+(Font)              <6> on input line 36.
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 4
-3.
+4.
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -580,11 +582,13 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10.95> on input line 44.
 
-Overfull \hbox (158.47209pt too wide) in paragraph at lines 45--46
-[]\T1/lmr/m/n/10.95 (-20) Run P1 in-ges-tion: trig-ger \T1/lmtt/m/n/10.95 cyber
-secintel_api_expansion_ingestion\T1/lmr/m/n/10.95 (-20) ; op-tion-ally run \T1/
-lmtt/m/n/10.95 cybersecintel_dataset_artifact_ingestion
+Underfull \hbox (badness 7047) in paragraph at lines 45--46
+[]\T1/lmr/m/n/10.95 (+20) Start in-fras-truc-ture: \T1/lmtt/m/n/10.95 docker co
+mpose build airflow-webserver\T1/lmr/m/n/10.95 (+20) ; \T1/lmtt/m/n/10.95 docke
+r compose up -d
  []
 
 <../assets/BDM_P2.drawio.png, id=68, 1752.5475pt x 549.05125pt>
@@ -598,195 +602,46 @@ Package pdftex.def Info: ../assets/BDM_P2.drawio.png  used on input line 67.
 
 {/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
 al/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}]
-
-[2 <build/../assets/BDM_P2.drawio.png>]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 9
 1.
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
+
+[2{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc} <build/../
+assets/BDM_P2.drawio.png>]
 Underfull \hbox (badness 1831) in paragraph at lines 111--111
 []|\T1/lmr/m/n/10.95 (+20) NVD, CIRCL, URL-haus, Threat-Fox, and Shodan: sta-bl
 e helper fields,
  []
 
 
-Underfull \hbox (badness 6188) in paragraph at lines 125--126
-\T1/lmr/m/n/10.95 (+20) The im-ple-men-ta-tion is in \T1/lmtt/m/n/10.95 exploit
-ation/analytics.py\T1/lmr/m/n/10.95 (+20) , \T1/lmtt/m/n/10.95 exploitation/war
-m_path.py\T1/lmr/m/n/10.95 (+20) , and
- []
 
-
-Overfull \hbox (3.77603pt too wide) in paragraph at lines 138--138
-[]|\T1/lmtt/m/n/10.95 ioc_correlations|
- []
-
-
-Overfull \hbox (26.77097pt too wide) in paragraph at lines 138--138
-[]|\T1/lmtt/m/n/10.95 warm_enriched_alerts|
- []
-
-
-
-[3{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
-Overfull \hbox (77.70764pt too wide) in paragraph at lines 148--150
-\T1/lmr/m/n/10.95 (-20) P2.1 pro-posed an Iso-la-tion For-est anomaly feed. The
- fi-nal im-ple-men-ta-tion now uses \T1/lmtt/m/n/10.95 sklearn.ensemble.Isolati
-onForest
- []
-
-
+[3]
 
 [4{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{/usr/local/
 texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/local/texlive/20
 25/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}]
-Underfull \hbox (badness 1342) in paragraph at lines 175--176
-\T1/lmr/m/n/10.95 (+20) shipped as a live lo-cal dash-board. \T1/lmtt/m/n/10.95
- consumption/grafana_postgres.py \T1/lmr/m/n/10.95 (+20) mir-rors se-lected ex-
-
- []
-
-
-Overfull \hbox (135.74712pt too wide) in paragraph at lines 175--176
-\T1/lmtt/m/n/10.95 config/grafana/provisioning/datasources/postgres.yml\T1/lmr/
-m/n/10.95 (-20) , \T1/lmtt/m/n/10.95 config/grafana/provisioning/dashboards/cyb
-ersecintel.yml\T1/lmr/m/n/10.95 (-20) ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 189--189
-[]|\T1/lmtt/m/n/10.95 s3://exploitation/governance_data_product_catalog \T1/lmr
-/m/n/10.95 (+20) doc-u-ments each
- []
-
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10.95> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 191.
 
 
 [5]
-Underfull \hbox (badness 5924) in paragraph at lines 236--236
-[]|\T1/lmtt/m/n/10.95 vuln_enriched \T1/lmr/m/n/10.95 (+20) joins KEV, NVD, EPS
-S, and CIRCL by \T1/lmtt/m/n/10.95 cve_id\T1/lmr/m/n/10.95 (+20) ;
- []
-
-
-Overfull \hbox (26.53696pt too wide) in paragraph at lines 236--236
-[]|\T1/lmtt/m/n/10.95 ingestion/common/spark_session.py\T1/lmr/m/n/10.95 (-20)
-, \T1/lmtt/m/n/10.95 trusted/spark_jobs/clean_sources.py\T1/lmr/m/n/10.95 (-20)
- ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 236--236
-[]|\T1/lmr/m/n/10.95 (+20) Model meta-data is stored in Delta and ar-ti-facts a
-re writ-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 236--236
-\T1/lmr/m/n/10.95 (+20) ten un-der \T1/lmtt/m/n/10.95 models/ids_anomaly_detect
-or/model.json \T1/lmr/m/n/10.95 (+20) and
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 236--236
-[]|\T1/lmr/m/n/10.95 (+20) Spark Struc-tured Stream-ing reads \T1/lmtt/m/n/10.9
-5 ids.alerts\T1/lmr/m/n/10.95 (+20) , en-riches alerts
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 236--236
-\T1/lmr/m/n/10.95 (+20) against \T1/lmtt/m/n/10.95 vuln_enriched\T1/lmr/m/n/10.
-95 (+20) , check-points progress, and writes
- []
-
-
-Overfull \hbox (29.44551pt too wide) in paragraph at lines 236--236
-\T1/lmtt/m/n/10.95 warm/stream_aggregates
- []
-
-
 
 [6]
-Overfull \hbox (112.17326pt too wide) in paragraph at lines 244--245
-[]\T1/lmr/bx/n/10.95 (-20) Warm ag-gre-gate run. \T1/lmr/m/n/10.95 (-20) The Ai
-r-flow task calls \T1/lmtt/m/n/10.95 ingestion.stream.warm_aggregates.materiali
-ze_warm_stream_aggregates\T1/lmr/m/n/10.95 (-20) .
- []
-
-
-Underfull \hbox (badness 1215) in paragraph at lines 244--245
-\T1/lmr/m/n/10.95 (+20) It reads a bounded batch from Kafka \T1/lmtt/m/n/10.95
-ids.alerts \T1/lmr/m/n/10.95 (+20) when avail-able, falls back to the sil-ver
- []
-
-
-Underfull \hbox (badness 2237) in paragraph at lines 244--245
-\T1/lmtt/m/n/10.95 ids_alerts \T1/lmr/m/n/10.95 (+20) Delta ta-ble for de-ter-m
-in-is-tic re-play, com-putes minute-window counts and top
- []
-
-
-Underfull \hbox (badness 2229) in paragraph at lines 244--245
-\T1/lmr/m/n/10.95 (+20) en-ti-ties, writes raw records un-der \T1/lmtt/m/n/10.9
-5 s3://landing/warm/stream_aggregates\T1/lmr/m/n/10.95 (+20) , and ma-te-ri-al-
-izes
- []
-
-
 
 [7]
-Overfull \hbox (250.73906pt too wide) in paragraph at lines 248--249
-[]\T1/lmr/bx/n/10.95 (-20) Spark warm run. \T1/lmr/m/n/10.95 (-20) The \T1/lmtt
-/m/n/10.95 spark_enrich_warm_alerts \T1/lmr/m/n/10.95 (-20) task calls \T1/lmtt
-/m/n/10.95 exploitation.spark_jobs.warm_alert_enrichment.run_spark_warm_alert_e
-nrichment\T1/lmr/m/n/10.95 (-20) .
- []
-
-
-Overfull \hbox (77.2907pt too wide) in paragraph at lines 252--253
-\T1/lmr/m/n/10.95 (-20) CSV, JSON, and HTML files. The next task calls \T1/lmtt
-/m/n/10.95 consumption.grafana_postgres.publish_grafana_serving_tables\T1/lmr/m
-/n/10.95 (-20) ,
- []
-
-
-Overfull \hbox (30.40292pt too wide) in paragraph at lines 270--270
-\T1/lmr/m/n/10.95 (-20) tion/containerization|
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 270--270
-[]|\T1/lmr/m/n/10.95 (+20) P1 and P2 DAGs run in the Docker Com-pose Air-flow s
-tack;
- []
-
-
 
 [8]
 
 [9]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 311.
+(Font)              <10> on input line 314.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 311.
+(Font)              <7> on input line 314.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 311.
-
-Overfull \hbox (61.26276pt too wide) in paragraph at lines 311--312
-[]\T1/lmr/m/n/10 (-20) CISA Known Ex-ploited Vul-ner-a-bil-i-ties cat-a-log and
- JSON feed: [][]$\T1/lmtt/m/n/10 https : / / www . cisa . gov / known-[]exploit
-ed-[]vulnerabilities$[][]
- []
-
-
-Underfull \hbox (badness 2269) in paragraph at lines 321--322
-[]\T1/lmr/m/n/10 (+20) Apache Spark Struc-tured Stream-ing doc-u-men-ta-tion: [
-][]$\T1/lmtt/m/n/10 https : / / spark . apache . org / docs / latest /
- []
-
+(Font)              <5> on input line 314.
 
 
 [10] (build/p2_final_delivery.aux)
@@ -796,15 +651,15 @@ L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `p2_final_delivery.out' has not changed.
 (rerunfilecheck)             Checksum: 731090436D6086D451A7002E8466E1E4;2677.
- )
+ ) 
 Here is how much of TeX's memory you used:
- 13311 strings out of 473190
- 209712 string characters out of 5715799
- 663888 words of memory out of 5000000
- 36180 multiletter control sequences out of 15000+600000
- 636890 words of font info for 160 fonts, out of 8000000 for 9000
+ 13344 strings out of 473190
+ 210393 string characters out of 5715799
+ 673195 words of memory out of 5000000
+ 36201 multiletter control sequences out of 15000+600000
+ 637222 words of font info for 164 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,8n,79p,1018b,473s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,10n,79p,1018b,646s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></usr/lo
 cal/texlive/2025/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/local/texliv
 e/2025/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2025/tex
@@ -814,10 +669,10 @@ blic/lm/lmr17.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr
 i10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></
 usr/local/texlive/2025/texmf-dist/fonts/type1/public/lm/lmtk10.pfb></usr/local/
 texlive/2025/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on build/p2_final_delivery.pdf (10 pages, 357403 bytes).
+Output written on build/p2_final_delivery.pdf (10 pages, 360805 bytes).
 PDF statistics:
- 211 PDF objects out of 1000 (max. 8388607)
- 173 compressed objects within 2 object streams
+ 212 PDF objects out of 1000 (max. 8388607)
+ 174 compressed objects within 2 object streams
  33 named destinations out of 1000 (max. 500000)
  46726 words of extra memory for PDF output out of 51595 (max. 10000000)
 
