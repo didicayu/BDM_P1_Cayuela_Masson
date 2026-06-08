@@ -10,13 +10,17 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Trusted schemas and quality policy}{3}{subsection.11}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Exploitation Zone}{3}{section.12}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}ML anomaly prediction}{4}{subsection.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}KPI and product completeness}{4}{subsection.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Data Consumption}{5}{section.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Data Governance}{5}{section.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Source Mapping}{6}{section.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Previous Delivery Promise Coverage}{6}{section.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Implementation Walkthrough}{7}{section.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Constraint Coverage and Validation}{9}{section.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Limitations and Production Extensions}{10}{section.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}References}{10}{section.22}\protected@file@percent }
-\gdef \@abspage@last{10}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces ML anomaly pipeline: \nolinkurl  {network_events} are vectorized into seven features, an Isolation Forest is fitted, and the same estimator scores every event. Anomalous rows are written to \nolinkurl  {anomaly_flags}, while the fitted model is persisted as auditable artifacts and a Delta metadata record.}}{5}{figure.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}IOC correlation coverage and data constraint}{5}{subsection.16}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces IOC correlation flow. Indicators from ThreatFox, URLhaus, and Shodan are indexed and exact-matched against network-event identifiers, producing \nolinkurl  {ioc_correlations} for Grafana. The dashed Shodan branch marks the external-API constraint (free \nolinkurl  {oss} plan, HTTP~403), which together with the IP-versus-domain mismatch yields no real matches on this corpus.}}{5}{figure.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}KPI and product completeness}{6}{subsection.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Data Consumption}{6}{section.20}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Provisioned \emph  {CyberSecIntel SOC} Grafana dashboard reading the \nolinkurl  {cybersecintel_consumption} Postgres serving mirror: daily alert trend, top prioritized CVEs, top signatures, source and destination IPs, the ML anomaly feed, IOC matches, and Isolation Forest model metadata.}}{6}{figure.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Data Governance}{7}{section.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Source Mapping}{8}{section.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Previous Delivery Promise Coverage}{8}{section.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Implementation Walkthrough}{9}{section.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Constraint Coverage and Validation}{11}{section.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Limitations and Production Extensions}{12}{section.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}References}{12}{section.29}\protected@file@percent }
+\gdef \@abspage@last{12}
