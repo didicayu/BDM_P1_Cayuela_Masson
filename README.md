@@ -12,16 +12,18 @@ A cybersecurity data platform for small SOC workflows, built as the P2 final del
 │   ├── common/         # Shared HTTP, storage, metadata, and Delta helpers
 │   ├── datasets/       # CTU-13 remote PCAP discovery and download
 │   ├── replay/         # Suricata offline replay, normalization, Delta writes, Kafka publishing
-│   └── stream/         # Synthetic IDS event scaffold
+│   └── stream/         # Synthetic IDS events and warm aggregate materialization
 ├── landing/            # Landing-zone prefix setup utilities
 ├── orchestration/
 │   └── airflow/
 │       ├── Dockerfile              # Custom image with Suricata + ET Open ruleset
 │       ├── requirements-airflow.txt
 │       └── dags/                   # Airflow DAG definitions
-├── config/             # Source configuration and CTU discovery rules
+├── scripts/            # Host-side pipeline and delivery build helpers
+├── config/             # Source configuration, CTU discovery rules, and Grafana provisioning
 ├── tests/              # Unit tests (ingestion, replay, P2 zones, ML, consumption, governance)
 ├── governance/          # P2 data product catalog, lineage, and quality metrics
+├── models/              # Trained Isolation Forest metadata and joblib artifact
 ├── docs/
 │   ├── p2_final_delivery/       # Final P2 report (LaTeX source + PDF)
 │   ├── p1_final_delivery/          # Final P1 report (LaTeX source + PDF)
@@ -53,7 +55,7 @@ Build the shared custom Airflow image and start the stack:
 
 ```bash
 docker compose build airflow-webserver
-docker compose up -d minio zookeeper kafka postgres
+docker compose up -d minio zookeeper kafka postgres grafana
 docker compose run --rm airflow-init
 docker compose up -d airflow-webserver airflow-scheduler
 ```
@@ -67,6 +69,7 @@ Service endpoints:
 | MinIO API       | `http://localhost:${MINIO_API_PORT:-9000}` |
 | Kafka bootstrap | `localhost:9092`                    |
 | Postgres        | `localhost:${POSTGRES_PORT:-5433}`  |
+| Grafana         | `http://localhost:${GRAFANA_PORT:-3000}` |
 
 ## Running the Pipelines
 
@@ -116,6 +119,10 @@ Copy `.env.example` to `.env` and adjust as needed:
 | `PCAP_REPLAY_KAFKA_IDS_ALERT_TOPIC` | `ids.alerts` | Topic for alert-compatible records |
 | `PCAP_REPLAY_KAFKA_STRICT` | `true` | Fails replay task on publish errors |
 | `KAFKA_BOOTSTRAP_SERVERS` | `kafka:29092` | Used by Airflow containers |
+| `WARM_STREAM_SOURCE` | `auto` | `auto` tries Kafka then Delta; `delta` gives a deterministic full-data rebuild |
+| `P2_ENGINE` | `python` | Set to `spark` to run Spark-backed Exploitation products with Python fallback |
+| `P2_TRUSTED_ENGINE` | — | Set to `spark` to run Spark-backed Trusted cleaning for KEV/EPSS/NVD |
+| `GRAFANA_PORT` | `3000` | Host port for Grafana |
 | `SHODAN_ENABLED` | `false` | Disabled by default |
 
 ## Storage Layout
@@ -132,6 +139,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 | `semi_structured/threatfox/` | ThreatFox IOCs (optional) |
 | `semi_structured/shodan_seeded/` | Shodan host data (optional) |
 | `stream/ids_alerts/` | Synthetic and replay-derived IDS alerts |
+| `warm/stream_aggregates/` | Bounded warm alert aggregate batches |
 | `unstructured/pcap/source=ctu13/` | Immutable CTU PCAP artifacts |
 | `unstructured/pcap_replay/source=ctu13/` | Suricata EVE JSONL from replay |
 | `metadata/manifests/` | Per-source JSONL manifests for lineage |
@@ -162,7 +170,7 @@ Re-running a DAG merges into existing Delta tables — matching records are upda
 .venv/bin/python -m unittest discover -s tests
 ```
 
-The test suite covers PCAP catalog construction, candidate selection, EVE normalization, compressed artifact staging, Kafka publishing, logical partitions, optional source handling, replay edge cases, P2 zone transformations, ML anomaly scoring, consumption exports, and governance artifacts (23 tests).
+The test suite covers PCAP catalog construction, candidate selection, EVE normalization, compressed artifact staging, Kafka publishing, logical partitions, optional source handling, replay edge cases, P2 zone transformations, sklearn Isolation Forest scoring and fallback, warm aggregates, Spark job configuration, Grafana provisioning, consumption exports, and governance artifacts.
 
 ## Validation
 
@@ -198,15 +206,24 @@ docker compose exec kafka kafka-run-class kafka.tools.GetOffsetShell \
 
 ## P2 Final Trusted, Exploitation, Consumption, and Governance
 
-After the P1 ingestion tables exist, run the P2 DAGs:
+The parent DAG executes the required path in dependency order: API ingestion, warm
+aggregate materialization, Trusted cleaning, Exploitation products, and Consumption:
 
 ```bash
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_end_to_end
+```
+
+The CTU artifact and PCAP replay DAGs remain optional because replay is intentionally
+gated by `PCAP_REPLAY_ENABLED`. To run only P2 after P1 tables already exist, trigger:
+
+```bash
+docker compose exec airflow-webserver airflow dags trigger cybersecintel_warm_stream_aggregates
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_trusted_zone
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_exploitation_zone
 docker compose exec airflow-webserver airflow dags trigger cybersecintel_consumption_exports
 ```
 
-These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, analyst-ready Exploitation Zone assets in `s3://exploitation/`, a trained ML anomaly model, and CSV/JSON/HTML consumption files under `consumption/outputs/`. The same stages can be run locally with `python -m trusted.run_trusted`, `python -m exploitation.run_exploitation --warm`, and `python -m consumption.run_exports`.
+These DAGs materialize cleaned Trusted Zone Delta tables in `s3://trusted/`, warm aggregates in landing and Delta, analyst-ready Exploitation Zone assets in `s3://exploitation/`, a trained sklearn Isolation Forest model, CSV/JSON/HTML consumption files under `consumption/outputs/`, and Postgres serving tables for Grafana.
 
 P2 also writes governance outputs:
 
@@ -216,7 +233,18 @@ P2 also writes governance outputs:
 | `governance_lineage` | `s3://trusted/` and `s3://exploitation/` | Run-level source-to-target lineage for Trusted, Exploitation, warm-path, and Consumption tasks |
 | `governance_quality_metrics` | `s3://trusted/` and `s3://exploitation/` | Rows read/written/rejected, warning counts, and consumption output counts |
 
-The ML artifact is recorded in `s3://exploitation/ml_anomaly_model` and written as JSON under `models/ids_anomaly_detector/model.json`.
+The ML artifact is recorded in `s3://exploitation/ml_anomaly_model` and written under `models/ids_anomaly_detector/model.json` plus `models/ids_anomaly_detector/model.joblib`.
+
+Grafana is provisioned from `config/grafana/provisioning/` and `config/grafana/dashboards/cybersecintel_soc.json`. It reads the `cybersecintel_consumption` Postgres schema populated by the consumption DAG.
+
+For a deterministic host-side rebuild, the helper translates Docker-internal service
+names to published localhost ports and uses the complete Delta IDS table for warm
+aggregates:
+
+```bash
+scripts/run_p2_local.sh
+scripts/run_p2_local.sh --spark
+```
 
 ## Report Build
 
@@ -224,6 +252,12 @@ To rebuild the final P2 delivery PDF:
 
 ```bash
 make -C docs/p2_final_delivery rebuild
+```
+
+To rebuild the PDF and integrity-check the submission archive together:
+
+```bash
+scripts/build_delivery.sh
 ```
 
 ## Stop Services

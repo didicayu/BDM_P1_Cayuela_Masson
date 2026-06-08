@@ -20,6 +20,7 @@ SOURCE_TABLES = (
     "pcap_replay_runs",
     "suricata_events",
     "ids_alerts",
+    "warm_stream_aggregates",
 )
 
 MANDATORY_FIELDS: dict[str, tuple[str, ...]] = {
@@ -34,6 +35,7 @@ MANDATORY_FIELDS: dict[str, tuple[str, ...]] = {
     "pcap_replay_runs": ("replay_run_id",),
     "suricata_events": ("event_type",),
     "ids_alerts": ("event_type", "src_ip"),
+    "warm_stream_aggregates": ("aggregate_type", "window_start", "window_end", "aggregate_key"),
 }
 
 DEDUP_KEYS: dict[str, tuple[str, ...]] = {
@@ -48,6 +50,7 @@ DEDUP_KEYS: dict[str, tuple[str, ...]] = {
     "pcap_replay_runs": ("replay_run_id",),
     "suricata_events": ("flow_id", "timestamp_utc", "event_type"),
     "ids_alerts": ("timestamp_utc", "src_ip", "dst_ip", "signature"),
+    "warm_stream_aggregates": ("window_start", "aggregate_type", "aggregate_key"),
 }
 
 URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
@@ -69,6 +72,10 @@ def clean_table(table_name: str, records: list[dict[str, Any]]) -> tuple[list[di
         ]
         if missing:
             rejected.append(_reject(table_name, record, index, f"missing mandatory fields: {', '.join(missing)}"))
+            continue
+        validation_error = _validation_error(table_name, normalized)
+        if validation_error:
+            rejected.append(_reject(table_name, record, index, validation_error))
             continue
 
         key = _dedup_key(table_name, normalized)
@@ -121,6 +128,16 @@ def normalize_record(table_name: str, record: dict[str, Any]) -> dict[str, Any]:
         timestamp = out.get("timestamp_utc") or out.get("timestamp") or out.get("started_at_utc")
         out["timestamp_utc"] = _timestamp(timestamp, warnings)
         out["severity"] = _int_field(out.get("severity"), warnings, "severity")
+    elif table_name == "warm_stream_aggregates":
+        out["window_start"] = _timestamp(out.get("window_start"), warnings)
+        out["window_end"] = _timestamp(out.get("window_end"), warnings)
+        out["aggregate_type"] = _string(out.get("aggregate_type"))
+        out["aggregate_key"] = _string(out.get("aggregate_key") or out.get("aggregate_value"))
+        out["aggregate_value"] = _string(out.get("aggregate_value") or out.get("aggregate_key"))
+        alert_count = out.get("alert_count") if out.get("alert_count") not in (None, "") else out.get("count")
+        out["alert_count"] = _int_field(alert_count, warnings, "alert_count")
+        out["rank"] = _int_field(out.get("rank"), warnings, "rank")
+        out["window_minutes"] = _int_field(out.get("window_minutes"), warnings, "window_minutes")
     elif table_name == "pcap_artifacts":
         out["size_bytes"] = _int_field(out.get("size_bytes"), warnings, "size_bytes")
         out["integrity_fail"] = bool(out.get("integrity_fail", False))
@@ -151,6 +168,23 @@ def _reject(table_name: str, record: dict[str, Any], index: int, reason: str) ->
         "record_json": json.dumps(record, sort_keys=True, default=str),
         "ingest_date": _string(record.get("ingest_date")) or _today(),
     }
+
+
+def _validation_error(table_name: str, record: dict[str, Any]) -> str:
+    if table_name != "warm_stream_aggregates":
+        return ""
+    if not _present(record.get("aggregate_key")):
+        return "missing aggregate key"
+    count = record.get("alert_count")
+    if count is None:
+        return "invalid aggregate count"
+    if _int_field(count, [], "alert_count") is None:
+        return "invalid aggregate count"
+    if int(count) < 0:
+        return "invalid aggregate count"
+    if not _present(record.get("window_start")) or not _present(record.get("window_end")):
+        return "missing aggregate window"
+    return ""
 
 
 def _present(value: Any) -> bool:
@@ -211,6 +245,7 @@ def _parse_datetime(value: Any) -> dt.datetime | None:
         return None
     if raw.endswith("Z"):
         raw = f"{raw[:-1]}+00:00"
+    raw = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", raw)
     for candidate in (raw, raw[:19], raw[:10]):
         try:
             parsed = dt.datetime.fromisoformat(candidate)

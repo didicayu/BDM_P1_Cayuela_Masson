@@ -11,24 +11,65 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{enumitem}
-\usepackage{xcolor}
+\usepackage[table]{xcolor}
+\usepackage{xurl}
+\usepackage{titlesec}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
 \usepackage{hyperref}
 \usepackage{float}
 
+% ---- Color palette -------------------------------------------------------
+\definecolor{csiNavy}{RGB}{23,52,94}
+\definecolor{csiBlue}{RGB}{37,99,235}
+\definecolor{csiTeal}{RGB}{13,148,136}
+\definecolor{csiHead}{RGB}{225,232,243}
+\definecolor{csiRow}{RGB}{245,248,251}
+\definecolor{csiBoxBg}{RGB}{247,250,252}
+\definecolor{csiBoxBorder}{RGB}{180,196,216}
+\definecolor{csiWarn}{RGB}{200,60,60}
+\definecolor{csiWarnBg}{RGB}{252,242,242}
+
 \graphicspath{{../assets/}}
-\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue,hypertexnames=false}
+\hypersetup{colorlinks=true,linkcolor=csiBlue,urlcolor=csiBlue,citecolor=csiBlue,hypertexnames=false}
 \setlist[itemize]{leftmargin=1.2em,itemsep=0.05em,topsep=0.1em}
 \setlist[enumerate]{leftmargin=1.35em,itemsep=0.05em,topsep=0.1em}
-\renewcommand{\arraystretch}{1.08}
+\renewcommand{\arraystretch}{1.12}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.28em}
 \emergencystretch=3em
 \Urlmuskip=0mu plus 1mu\relax
-\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+
+% ---- Section styling -----------------------------------------------------
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{csiNavy}}{\thesection}{0.6em}{}
+  [{\color{csiBlue}\titlerule[1pt]}]
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{csiNavy}}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.0em}{0.5em}
+\titlespacing*{\subsection}{0pt}{0.8em}{0.35em}
+
+% ---- Table helpers -------------------------------------------------------
+\newcommand{\hdr}{\rowcolor{csiHead}}
+\arrayrulecolor{csiBoxBorder}
+
+% ---- TikZ shared styles --------------------------------------------------
+\tikzset{
+  proc/.style={draw=csiBoxBorder,fill=csiBoxBg,rounded corners=3pt,align=center,
+    inner sep=5pt,font=\small,minimum height=0.95cm},
+  data/.style={draw=csiBlue,fill=csiHead,rounded corners=3pt,align=center,
+    inner sep=5pt,font=\small,minimum height=0.95cm},
+  warnode/.style={draw=csiWarn,fill=csiWarnBg,rounded corners=3pt,align=center,
+    inner sep=5pt,font=\small,minimum height=0.95cm},
+  arr/.style={-{Latex[length=2.2mm]},draw=csiNavy,semithick},
+  warr/.style={-{Latex[length=2.2mm]},draw=csiWarn,semithick,dashed},
+  capr/.style={-{Latex[length=2.2mm]},draw=csiTeal,semithick,dashed},
+}
 
 \title{\vspace{-1.1cm}CyberSecIntel\\P2 Final Delivery\\Trusted Zone, Exploitation Zone, Consumption, and Governance}
 \author{D\'idac Cayuela and Sindri Masson\\Big Data Management -- Universitat Politecnica de Catalunya}
-\date{May 2026}
+\date{June 2026}
 
 \begin{document}
 \maketitle
@@ -38,23 +79,35 @@
 
 CyberSecIntel is a cybersecurity data platform for small SOC workflows. P1 implemented ingestion and a governed Landing/Silver lakehouse: public vulnerability feeds, IOC feeds, CTU-13 PCAP artifacts, Suricata replay outputs, and Kafka topics are stored in MinIO and Delta Lake. P2 completes the architecture required by the statement: Trusted Zone, Exploitation Zone, downstream consumption, and governance.
 
+\textbf{Repository access.} The project repository is:
+\begin{center}
+  \url{https://github.com/didicayu/BDM_P1_Cayuela_Masson.git}
+\end{center}
+The final P2 implementation is on branch \code{main}. A supervisor can clone and run it locally:
+\begin{verbatim}
+git clone https://github.com/didicayu/BDM_P1_Cayuela_Masson.git
+cd BDM_P1_Cayuela_Masson
+cp .env.example .env
+\end{verbatim}
+
 \textbf{Run order.}
 \begin{enumerate}
-  \item Copy configuration: \code{cp .env.example .env}; optional keys are \code{NVD_API_KEY}, \code{ABUSE_CH_API_KEY}, and \code{SHODAN_API_KEY}.
-  \item Start infrastructure: \code{docker compose build airflow-webserver}; \code{docker compose up -d minio zookeeper kafka postgres}; \code{docker compose run --rm airflow-init}; \code{docker compose up -d airflow-webserver airflow-scheduler}.
-  \item Run P1 ingestion: trigger \code{cybersecintel_api_expansion_ingestion}; optionally run \code{cybersecintel_dataset_artifact_ingestion} and \code{cybersecintel_pcap_replay}.
-  \item Run P2: trigger \code{cybersecintel_trusted_zone}, then \code{cybersecintel_exploitation_zone}, then \code{cybersecintel_consumption_exports}.
+  \item Copy configuration: \texttt{cp .env.example .env}; optional keys are \code{NVD_API_KEY}, \code{ABUSE_CH_API_KEY}, and \code{SHODAN_API_KEY}.
+  \item Start infrastructure: \texttt{docker compose build airflow-webserver}; \texttt{docker compose up -d minio zookeeper kafka postgres grafana}; \texttt{docker compose run {-}{-}rm airflow-init}; \texttt{docker compose up -d airflow-webserver airflow-scheduler}.
+  \item Trigger \code{cybersecintel_end_to_end}. This parent DAG waits for API ingestion, warm aggregate materialization, Trusted cleaning, Exploitation, and Consumption in that order. The Consumption DAG also publishes the Grafana Postgres serving tables.
+  \item Optionally run \code{cybersecintel_dataset_artifact_ingestion} and \code{cybersecintel_pcap_replay}; replay remains intentionally gated by \code{PCAP_REPLAY_ENABLED}.
 \end{enumerate}
 
-The P2 stages can also be executed locally after P1 Delta tables exist:
+The P2 stages can also be executed locally after P1 Delta tables exist. The helper
+translates Docker-internal service names to published localhost ports and uses Delta
+as the deterministic warm aggregate source:
 \begin{verbatim}
-python -m trusted.run_trusted
-python -m exploitation.run_exploitation --warm
-python -m consumption.run_exports
+scripts/run_p2_local.sh
+scripts/run_p2_local.sh --spark
 \end{verbatim}
-The outputs are inspected in MinIO buckets \code{s3://trusted/} and \code{s3://exploitation/}, plus local files under \code{consumption/outputs/}.
+The outputs are inspected in MinIO buckets \code{s3://trusted/} and \code{s3://exploitation/}, local files under \code{consumption/outputs/}, and Grafana at \code{http://localhost:3000} after starting \code{postgres} and \code{grafana}.
 
-\textbf{Submission evidence.} The final archive contains the source code, report source, generated PDF, tests, Docker/Airflow definitions, the trained ML model artifact, and generated consumption files. The verification run used the same Docker Compose stack as the coursework demo, so the evidence is not limited to isolated unit tests. The key observed P2 outputs were: 11 Trusted lineage rows, 44 Trusted quality-metric rows, 6 exploitation catalog products, 11 exploitation lineage rows, 16 exploitation quality-metric rows, 50 CVE prioritization rows, 10664 ML anomaly records on the replay dataset, and all five consumption files.
+\textbf{Submission evidence.} The final archive contains the source code, report source, generated PDF, tests, Docker/Airflow definitions, the trained Isolation Forest artifacts, Grafana provisioning, and generated consumption files. The verification run uses the same Docker Compose stack as the coursework demo, so the evidence is not limited to isolated unit tests.
 
 \section{Architecture Design}
 
@@ -68,21 +121,22 @@ The final architecture follows Option 1 from the P2 statement: extend the P1 lak
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm}X}
 \toprule
+\hdr
 \textbf{Stage} & \textbf{Implemented role}\\
 \midrule
 Landing/Silver & P1 raw MinIO prefixes and Delta tables: KEV, NVD, EPSS, URLhaus, CIRCL, ThreatFox, optional Shodan, PCAP catalogs, replay runs, Suricata events, and IDS alerts.\\
 Trusted & \code{trusted/} package reads \code{s3://deltalake/}, performs information-preserving cleaning, writes cleaned tables and rejected-row tables to \code{s3://trusted/}.\\
 Exploitation & \code{exploitation/} package writes analyst-ready Delta assets to \code{s3://exploitation/}: CVE enrichment, network events, IOC correlations, anomaly flags, warm enriched alerts, and KPIs.\\
-Consumption & \code{consumption/} package exports CSV, JSON, and an HTML SOC dashboard from exploitation assets. Kafka topics remain available for live event inspection.\\
-Governance & \code{governance/} package creates data product catalog, lineage records, and quality metrics for Trusted, Exploitation, and Consumption runs.\\
+Consumption & \code{consumption/} package exports CSV, JSON, and an HTML SOC dashboard from exploitation assets; \code{consumption/grafana_postgres.py} mirrors the same products into Postgres for a provisioned Grafana dashboard. Kafka topics remain available for live event inspection.\\
+Governance & \code{governance/} package creates data product catalog, lineage records, and quality metrics for Trusted, Exploitation, Spark, Grafana, and Consumption runs.\\
 \bottomrule
 \end{tabularx}
 
-The cold path is Airflow-orchestrated batch movement through P1 ingestion, Trusted cleaning, Exploitation materialization, and file exports. The warm path uses the P1 \code{ids.alerts} Kafka topic and a bounded consumer that enriches alerts against \code{vuln_enriched}; it is bounded so the Airflow task terminates reliably in a coursework demonstration. The hot path remains the P1 \code{suricata.events} topic, where raw replay events are already normalized and should not be delayed by extra transformations.
+The cold path is Airflow-orchestrated batch movement through P1 ingestion, Trusted cleaning, Exploitation materialization, and consumption publishing. Spark-backed optional jobs are provided for Trusted KEV/EPSS/NVD cleaning and for the core Exploitation products \code{vuln_enriched}, \code{network_events}, and KPI tables. The warm path now has two layers: bounded \code{warm_stream_aggregates} materialization and Spark Structured Streaming enrichment from \code{ids.alerts} into \code{warm_enriched_alerts_spark}. The previous bounded Python Kafka enrichment remains as a fallback so the coursework demo still terminates reliably. The hot path remains the P1 \code{suricata.events} topic, where raw replay events are already normalized and should not be delayed by extra transformations.
 
 \subsection{Why the same lakehouse stack is kept}
 
-The P2 statement offers two implementation directions: extending the current architecture or moving parts of the pipeline to specialized databases. We keep the first option. This decision is not a simplification of the data-management problem; it is a deliberate fit to the workload. The project's largest operational dataset is replay-derived network telemetry, while the vulnerability and IOC feeds are moderate in size. MinIO and Delta Lake provide clear zone separation, ACID table commits, schema evolution, reproducible overwrite checkpoints, and direct Python access without operating extra services. Adding ClickHouse, MongoDB, Milvus, or Grafana would make the architecture broader, but not more reliable for the final marking criteria unless those services were deeply integrated and validated.
+The P2 statement offers two implementation directions: extending the current architecture or moving parts of the pipeline to specialized databases. We keep the first option. This decision is not a simplification of the data-management problem; it is a deliberate fit to the workload. The project's largest operational dataset is replay-derived network telemetry, while the vulnerability and IOC feeds are moderate in size. MinIO and Delta Lake provide clear zone separation, ACID table commits, schema evolution, reproducible overwrite checkpoints, and direct Python access. Grafana is added only as a consumption service: it reads a Postgres serving mirror generated from authoritative Delta products, while Delta Lake remains the system of record.
 
 The implementation therefore treats each zone as a managed checkpoint:
 \begin{itemize}
@@ -100,6 +154,7 @@ The Trusted Zone applies the P2 statement's information-preserving rule: clean r
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm}X}
 \toprule
+\hdr
 \textbf{Source family} & \textbf{Trusted transformations}\\
 \midrule
 Structured & KEV and EPSS: CVE normalization, date parsing, numeric casting, EPSS range warnings, mandatory-field checks, and deduplication by natural key.\\
@@ -122,8 +177,9 @@ The key quality policy is that a bad value should not automatically erase a secu
 
 The Exploitation Zone organizes data as SOC-facing products rather than raw source copies. The implementation is in \code{exploitation/analytics.py}, \code{exploitation/warm_path.py}, and \code{exploitation/run_exploitation.py}.
 
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.1cm}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.55cm}X}
 \toprule
+\hdr
 \textbf{Asset} & \textbf{Purpose}\\
 \midrule
 \code{vuln_enriched} & Wide CVE table joining KEV, NVD, EPSS, and CIRCL by normalized \code{cve_id}. It includes KEV status, dates, descriptions, EPSS, CVSS, reference counts, and \code{vuln_priority_score}.\\
@@ -143,7 +199,7 @@ If CVSS is unavailable for a CVE in the current source snapshot, the score still
 
 \subsection{ML anomaly prediction}
 
-P2.1 proposed an Isolation Forest anomaly feed. The final implementation keeps that promise at the level that is most robust for this local stack: a dependency-free unsupervised anomaly model trained from the exploitation network events. The model is implemented in \code{exploitation/ml_anomaly.py}. It extracts a feature vector per event:
+P2.1 proposed an Isolation Forest anomaly feed. The final implementation now uses \code{sklearn.ensemble.IsolationForest} as the preferred model backend and keeps the original robust unsupervised detector only as a fallback if the sklearn runtime is unavailable. The model is implemented in \code{exploitation/ml_anomaly.py}. It extracts a feature vector per event:
 \begin{itemize}
   \item severity;
   \item source and destination ports;
@@ -151,9 +207,57 @@ P2.1 proposed an Isolation Forest anomaly feed. The final implementation keeps t
   \item a binary indicator for suspicious remote-access/control ports such as 23, 2323, 3389, 4444, and 5900.
 \end{itemize}
 
-The training stage learns robust medians and median absolute deviations for each feature and sets a 95th-percentile anomaly threshold over the training distribution. The inference stage scores each event against that learned baseline and emits records whose score crosses the threshold or whose feature pattern contains high-risk security indicators. Each output row includes \code{ml_score}, \code{ml_threshold}, \code{prediction_label}, and human-readable \code{anomaly_reasons}. This is a real trained unsupervised model: it learns baseline behavior from the current replay/event dataset and applies a prediction rule to produce an anomaly feed.
+The training stage fits an Isolation Forest with deterministic \code{random_state} and approximately 5\% contamination, matching the intended anomaly-feed scale from the previous validated run. The inference stage uses the model's decision function and prediction labels to emit anomalous events. Each output row includes \code{ml_score}, \code{ml_threshold}, \code{prediction_label}, \code{model_type}, and human-readable \code{anomaly_reasons}. This is a real trained unsupervised model: it learns baseline behavior from the current replay/event dataset and applies a prediction rule to produce an anomaly feed.
 
-The model metadata is written to \code{s3://exploitation/ml_anomaly_model}, and a JSON artifact is written under \code{models/ids_anomaly_detector/model.json}. The Delta model record stores the model type, feature names, number of training rows, learned threshold, artifact path, training timestamp, and ingest date. This satisfies the P2.1 ML artifact promise while avoiding the fragility of requiring a new heavyweight ML dependency inside the Airflow image. In a production evolution, this implementation can be replaced by scikit-learn Isolation Forest while preserving the same exploitation contract: \code{network_events} in, \code{ml_anomaly_model} and \code{anomaly_flags} out.
+The model metadata is written to \code{s3://exploitation/ml_anomaly_model}. Local artifacts are written under \code{models/ids_anomaly_detector/}: \code{model.json} for auditable metadata and \code{model.joblib} for the serialized sklearn estimator. The Delta model record stores the model type, backend, feature names, number of training rows, contamination, decision boundary, artifact paths, training timestamp, and ingest date. This satisfies the P2.1 ML artifact promise while preserving the same exploitation contract: \code{network_events} in, \code{ml_anomaly_model} and \code{anomaly_flags} out.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=0.55cm and 0.85cm]
+    \node[data] (ne) {network\_events};
+    \node[proc, right=of ne] (feat) {Feature\\extraction\\(7 features)};
+    \node[proc, right=of feat] (iso) {Isolation Forest\\fit\\($\sim$5\% contam.)};
+    \node[proc, right=of iso] (score) {Decision\\function\\\& predict};
+    \node[data, right=of score] (flags) {anomaly\_flags};
+    \node[data, below=0.9cm of iso] (art) {model.json\,/\,model.joblib\\ml\_anomaly\_model};
+    \draw[arr] (ne) -- (feat);
+    \draw[arr] (feat) -- (iso);
+    \draw[arr] (iso) -- (score);
+    \draw[arr] (score) -- (flags);
+    \draw[arr] (iso) -- node[right,font=\scriptsize,text=csiNavy] {persist} (art);
+  \end{tikzpicture}
+  \caption{ML anomaly pipeline: \code{network_events} are vectorized into seven features, an Isolation Forest is fitted, and the same estimator scores every event. Anomalous rows are written to \code{anomaly_flags}, while the fitted model is persisted as auditable artifacts and a Delta metadata record.}
+\end{figure}
+
+\subsection{IOC correlation coverage and data constraint}
+
+The \code{ioc_correlations} product is fully implemented in \code{build_ioc_correlations}. It indexes indicators from ThreatFox, URLhaus, and Shodan and joins them against each network event's \code{src_ip}, \code{dst_ip}, \code{url}, and \code{hostname} fields, emitting one correlation row per match with the indicator value, source, type, malware family, and the originating event context. The transformation, lineage record, governance catalog entry, Postgres serving table, and Grafana ``IOC Matches'' panel are all in place and exercised by the pipeline.
+
+In the current dataset, however, the product legitimately yields zero rows, and this is a data and external-API constraint rather than a defect. Three independent factors prevent real overlap. First, the observed traffic comes from CTU-13 replay and synthetic IDS events, whose addresses (for example \code{147.32.84.165} and private \code{10.x} ranges) do not appear in present-day public threat feeds. Second, ThreatFox and URLhaus indicators are predominantly domains and full URLs, while \code{network_events} only carries IP-level identifiers in this snapshot (the \code{url} and \code{hostname} fields are empty for replay-derived records), so the exact-match join has no shared key. Third, the IP-exposure branch that would bridge IPs to intelligence is Shodan, whose Host API requires a paid membership; the available key resolves to the free \code{oss} plan and returns HTTP~403 (\code{"Requires membership or higher to access"}), so seeded host lookups are skipped.
+
+To validate the join end-to-end despite this constraint, we verified the mechanism by writing a small set of clearly-labeled synthetic Shodan indicators (\code{malware\_family = DEMO\_SYNTHETIC\_IOC}) for the most frequent public IPs actually present in \code{network_events}. With these seeds the full path produces correlation rows that propagate through \code{exploitation/ioc_correlations}, the consumption exports, the Postgres serving mirror, and the Grafana panel, confirming the logic is correct. The empty result with real data therefore reflects the absence of overlap between this replay corpus and current free-tier intelligence, not a missing implementation.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=0.5cm and 0.9cm]
+    \node[proc] (tf) {ThreatFox};
+    \node[proc, below=of tf] (uh) {URLhaus};
+    \node[warnode, below=of uh] (sh) {Shodan\\(paid-only API)};
+    \node[proc, right=1.3cm of uh] (idx) {Indicator\\index};
+    \node[proc, right=of idx] (join) {Exact-match join\\src\_ip, dst\_ip,\\url, hostname};
+    \node[data, below=0.95cm of join] (ne) {network\_events};
+    \node[data, right=of join] (out) {ioc\_correlations};
+    \node[data, right=of out] (graf) {Grafana\\``IOC Matches''};
+    \draw[arr] (tf.east) -- (idx.west);
+    \draw[arr] (uh.east) -- (idx.west);
+    \draw[warr] (sh.east) -- (idx.west);
+    \draw[arr] (idx) -- (join);
+    \draw[arr] (ne) -- (join);
+    \draw[arr] (join) -- (out);
+    \draw[arr] (out) -- (graf);
+  \end{tikzpicture}
+  \caption{IOC correlation flow. Indicators from ThreatFox, URLhaus, and Shodan are indexed and exact-matched against network-event identifiers, producing \code{ioc_correlations} for Grafana. The dashed Shodan branch marks the external-API constraint (free \code{oss} plan, HTTP~403), which together with the IP-versus-domain mismatch yields no real matches on this corpus.}
+\end{figure}
 
 \subsection{KPI and product completeness}
 
@@ -170,9 +274,13 @@ The consumption layer proves that exploitation assets are actually usable by ana
   \item \code{soc_dashboard.html}: portable SOC dashboard showing top CVEs, alert trends, signatures, and source IPs.
 \end{itemize}
 
-The dashboard now also shows destination-IP indicators and the ML anomaly feed with learned threshold information. This makes the consumption layer broader than a static export: it demonstrates vulnerability triage, IOC correlation, anomaly prediction, alert trends, and traffic concentration in one portable artifact.
+The dashboard now also shows destination-IP indicators and the ML anomaly feed with learned threshold information. The HTML file remains useful for offline review, but Grafana is also shipped as a live local dashboard. \code{consumption/grafana_postgres.py} mirrors selected exploitation products into the \code{cybersecintel_consumption} Postgres schema, and the consumption Airflow DAG runs \code{publish_grafana_serving_tables} after the file exports. Grafana is provisioned from \code{config/grafana/provisioning/datasources/postgres.yml}, \code{config/grafana/provisioning/dashboards/cybersecintel.yml}, and \code{config/grafana/dashboards/cybersecintel_soc.json}. This gives two consumption modes: a portable submitted dashboard and a live service at \code{http://localhost:3000}.
 
-This final delivery uses a generated HTML dashboard instead of provisioning Grafana. Grafana was proposed in P2.1, but for a reproducible academic zip the static dashboard is the safer final choice: it requires no extra service, is generated by the Airflow DAG, and directly demonstrates that exploitation data reaches consumption. The Dockerized stack still satisfies the orchestration/containerization constraint through MinIO, Kafka, Postgres, and Airflow. The report still references Grafana as a natural production upgrade, but the submitted artifact does not overclaim that a Grafana service is shipped.
+\begin{figure}[H]
+  \centering
+  \fcolorbox{csiBoxBorder}{white}{\includegraphics[width=0.98\textwidth,height=0.42\textheight,keepaspectratio]{grafana_dashboard.png}}
+  \caption{Provisioned \emph{CyberSecIntel SOC} Grafana dashboard reading the \code{cybersecintel_consumption} Postgres serving mirror: daily alert trend, top prioritized CVEs, top signatures, source and destination IPs, the ML anomaly feed, IOC matches, and Isolation Forest model metadata.}
+\end{figure}
 
 \section{Data Governance}
 
@@ -180,6 +288,7 @@ Governance is implemented because it directly improves traceability and aligns w
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.0cm}X}
 \toprule
+\hdr
 \textbf{Governance artifact} & \textbf{Implemented evidence}\\
 \midrule
 Data product catalog & \code{s3://exploitation/governance_data_product_catalog} documents each product's domain, owner, description, storage path, primary key, upstream assets, quality rules, access policy, and retention policy.\\
@@ -192,10 +301,30 @@ Quality metrics & \code{governance_quality_metrics} records row counts, rejected
 
 \textbf{Detailed ML product example: \code{ml_anomaly_model}.} Domain: ML Artifacts. Owner: CyberSecIntel data engineering team. Description: trained unsupervised event-anomaly baseline for network telemetry. Upstream lineage: \code{exploitation/network_events}. Quality rules: training row count is recorded, threshold is non-negative, feature list is stored, and the output anomaly table contains model scores and reasons. Access policy: analysts and engineers can read; only the exploitation DAG writes. This artifact is important because ML outputs must be governed like data products: analysts need to know when the model was trained, on how many rows, what features it used, and where the produced predictions came from.
 
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=0.5cm and 0.9cm]
+    \node[data] (src) {trusted/ids\_alerts\\trusted/suricata\_events};
+    \node[data, right=of src] (ne) {exploitation/\\network\_events};
+    \node[data, right=of ne] (flags) {exploitation/\\anomaly\_flags};
+    \node[data, right=of flags] (serve) {Postgres mirror\\\& Grafana};
+    \node[proc, below=1.05cm of flags, text width=4.6cm] (gov) {governance\_lineage \,+\, governance\_quality\_metrics\\(run id, task, rows read/written, status)};
+    \draw[arr] (src) -- (ne);
+    \draw[arr] (ne) -- (flags);
+    \draw[arr] (flags) -- (serve);
+    \draw[capr] (src) -- (gov);
+    \draw[capr] (ne) -- (gov);
+    \draw[capr] (flags) -- (gov);
+    \draw[capr] (serve) -- (gov);
+  \end{tikzpicture}
+  \caption{Embedded governance. Every zone transition (solid) also emits lineage and quality metrics (dashed) as a side effect of data movement, so each product is traceable from Trusted inputs through Exploitation to the Grafana serving layer.}
+\end{figure}
+
 \section{Source Mapping}
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.3cm}X}
 \toprule
+\hdr
 \textbf{Source} & \textbf{Type} & \textbf{P2 use}\\
 \midrule
 CISA KEV & Structured JSON & Active exploitation evidence; boosts vulnerability priority and recent KEV KPI.\\
@@ -218,6 +347,7 @@ The final P2 work was checked against the commitments made in P1, P2.1, and P2.2
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.4cm}X}
 \toprule
+\hdr
 \textbf{Prior commitment} & \textbf{Final P2 evidence}\\
 \midrule
 P1: stronger Trusted schemas and source-quality checks & Trusted cleaning normalizes CVEs, timestamps, dates, numeric scores, ports, URLs, and replay fields; rejected-row tables preserve mandatory-field failures and duplicates.\\
@@ -225,69 +355,94 @@ P1: CVE and IOC entity resolution & \code{vuln_enriched} joins KEV, NVD, EPSS, a
 P1: SOC-facing aggregates & KPI tables include vulnerability top 50, daily alert counts, top signatures, top source IPs, top destination IPs, and recent KEV additions.\\
 P1: traceability links from insights back to evidence & Governance lineage records source assets, target assets, row counts, DAG/task identifiers, and transformation names for Trusted, Exploitation, warm-path, and Consumption tasks.\\
 P2.1: ML anomaly feed & \code{ml_anomaly_model} is trained from \code{network_events}; \code{anomaly_flags} stores predictions with score, threshold, label, and reasons.\\
-P2.1: model artifact & Model metadata is stored in Delta and a JSON artifact is written under \code{models/ids_anomaly_detector/model.json}.\\
-P2.1: warm alert enrichment & A bounded Kafka consumer reads \code{ids.alerts}, enriches alerts against \code{vuln_enriched}, and writes \code{warm_enriched_alerts}.\\
+P2.1: sklearn Isolation Forest & \code{exploitation/ml_anomaly.py} trains \code{sklearn_isolation_forest} first, persists \code{model.json} and \code{model.joblib}, and keeps the robust detector as fallback.\\
+P2.1: Spark/PySpark transformation engine & \code{ingestion/common/spark_session.py}, \code{trusted/spark_jobs/clean_sources.py}, and \code{exploitation/spark_jobs/materialize_products.py} provide Spark-backed Trusted and Exploitation execution paths.\\
+P2.1: model artifact & Model metadata is stored in Delta and artifacts are written under \code{models/ids_anomaly_detector/model.json} and \code{models/ids_anomaly_detector/model.joblib}.\\
+P2.1: warm alert enrichment & Spark Structured Streaming reads \code{ids.alerts}, enriches alerts against \code{vuln_enriched}, checkpoints progress, and writes \code{warm_enriched_alerts_spark}; the bounded Python enrichment remains as fallback.\\
+P1: \code{warm/stream_aggregates} reserved prefix & \code{cybersecintel_warm_stream_aggregates} writes raw landing aggregate files and a queryable \code{warm_stream_aggregates} Delta table, which Trusted and Exploitation can consume.\\
+P2.1: Grafana dashboard & \code{docker-compose.yml} includes Grafana; datasource and dashboard provisioning files are shipped; \code{consumption/grafana_postgres.py} publishes the Postgres serving mirror.\\
 P2.2: deepen governance & The final delivery adds data product catalog, lineage, and quality metrics rather than only documenting governance.\\
 \bottomrule
 \end{tabularx}
 
-The only P2.1 design choice intentionally adapted is Grafana. The submitted implementation uses a generated HTML dashboard instead of running Grafana because the static artifact is easier to evaluate in a zip submission and has fewer moving parts. This is a controlled implementation decision, not an omitted consumption task: data still moves from Exploitation to an analyst-facing dashboard, and the report explains how Grafana could replace the static dashboard in production.
+The only P2.1 design choice intentionally adapted is the Grafana data-serving route. P2.1 described Grafana through Spark SQL Thrift; the final implementation uses Postgres as a serving cache because Grafana's built-in Postgres datasource is reliable in the local Docker stack. Delta remains authoritative and Spark remains available for transformation and streaming jobs.
 
 \section{Implementation Walkthrough}
 
+All P2 stages are orchestrated as Airflow DAGs alongside the P1 ingestion DAGs. The parent \code{cybersecintel_end_to_end} DAG sequences the required path, while each zone also remains independently triggerable for debugging and re-runs.
+
+\begin{figure}[H]
+  \centering
+  \fcolorbox{csiBoxBorder}{white}{\includegraphics[width=0.98\textwidth,height=0.36\textheight,keepaspectratio]{airflow-screencap.png}}
+  \caption{Airflow DAG inventory for the full platform: P1 ingestion (\code{api_expansion_ingestion}, \code{dataset_artifact_ingestion}, \code{pcap_replay}) and P2 (\code{warm_stream_aggregates}, \code{trusted_zone}, \code{exploitation_zone}, \code{consumption_exports}) coordinated by the \code{end_to_end} parent DAG, with recent successful runs.}
+\end{figure}
+
 \textbf{Trusted run.} The Airflow task calls \code{trusted.run_trusted.run_trusted_zone}. It opens the P1 Delta bucket, reads the known source tables, applies table-specific normalization, and writes two kinds of output per source: a clean Trusted table and a rejected table. The run returns row counts per source and writes governance tables in the same bucket. In the verified run, Suricata events were the only table with rejected rows, which is expected because replay-derived event records can vary more than API-feed records.
 
-\textbf{Exploitation run.} The Airflow task calls \code{exploitation.run_exploitation.run_exploitation_zone}. It first loads Trusted inputs, then materializes the main analytical products. The vulnerability branch creates one row per CVE; the network branch unifies IDS alerts and Suricata events; the IOC branch attempts indicator matching; the ML branch trains and applies the anomaly model; and the KPI branch precomputes dashboard-ready aggregates. The task writes each product with overwrite semantics so reruns are deterministic.
+\textbf{Warm aggregate run.} The Airflow task calls \code{ingestion.stream.warm_aggregates.materialize_warm_stream_aggregates}. It reads a bounded batch from Kafka \code{ids.alerts} when available, falls back to the silver \code{ids_alerts} Delta table for deterministic replay, computes minute-window counts and top entities, writes raw records under \code{s3://landing/warm/stream_aggregates}, and materializes \code{s3://deltalake/warm_stream_aggregates}. Trusted cleaning then validates count and key fields and writes \code{s3://trusted/warm_stream_aggregates}.
 
-\textbf{ML run.} The model trains from the current \code{network_events} population. Because this is a local coursework stack, the model is implemented without external ML dependencies, but it still follows a valid unsupervised-learning workflow: feature extraction, baseline fitting, threshold selection, inference, prediction output, and model artifact storage. The verified model used 212893 training rows and produced 10664 anomaly predictions, which is close to a 5\% anomaly feed and therefore more useful than flagging every event.
+\textbf{Exploitation run.} The Airflow task calls \code{exploitation.run_exploitation.run_exploitation_zone}. It first loads Trusted inputs, then materializes the main analytical products. The vulnerability branch creates one row per CVE; the network branch unifies IDS alerts and Suricata events; the IOC branch attempts indicator matching; the ML branch trains and applies the Isolation Forest model; and the KPI branch precomputes dashboard-ready aggregates, preferring \code{warm_stream_aggregates} for alert trend evidence when present. With \code{P2_ENGINE=spark}, Spark writes \code{vuln_enriched}, \code{network_events}, and KPI tables before the Python fallback products are applied. The task writes each product with overwrite semantics so reruns are deterministic.
 
-\textbf{Consumption run.} The Airflow task calls \code{consumption.run_exports.run_consumption_exports}. It reads exploitation KPI tables, anomaly rows, IOC rows, and the model metadata, then regenerates the CSV, JSON, and HTML files. The dashboard is intentionally portable: a professor can open the file directly, while the code still demonstrates the same downstream movement a Grafana panel would consume.
+\textbf{Spark warm run.} The \code{spark_enrich_warm_alerts} task calls \code{exploitation.spark_jobs.warm_alert_enrichment.run_spark_warm_alert_enrichment}. The job configures Delta and S3A/MinIO, reads Kafka as a streaming DataFrame, parses alert JSON, extracts CVE IDs from alert text, joins the static \code{vuln_enriched} Delta table, and writes \code{warm_enriched_alerts_spark} with checkpointing. It uses \code{availableNow} by default so the Airflow task can terminate in a coursework demo.
 
-\textbf{Governance run.} Governance is not a separate manual step. It is embedded into each P2 stage so every run updates lineage and quality metrics as a side effect of data movement. This is closer to real data engineering practice than writing governance only in the report: the metadata is produced by the pipeline itself.
+\textbf{ML run.} The model trains from the current \code{network_events} population. It follows the required unsupervised-learning workflow: feature extraction, Isolation Forest fitting, decision-function scoring, prediction output, and model artifact storage. The configured contamination is about 5\%, which is useful for analyst triage because it produces a focused anomaly feed instead of flagging every event.
+
+\textbf{Consumption run.} The Airflow task calls \code{consumption.run_exports.run_consumption_exports}. It reads exploitation KPI tables, anomaly rows, IOC rows, and the model metadata, then regenerates the CSV, JSON, and HTML files. The next task calls \code{consumption.grafana_postgres.publish_grafana_serving_tables}, replaces the \code{cybersecintel_consumption} Postgres tables, and records Grafana quality metrics. Grafana automatically loads the provisioned SOC dashboard from the repository.
+
+\textbf{Governance run.} Governance is not a separate manual step. It is embedded into each P2 stage so every run updates lineage and quality metrics as a side effect of data movement. New catalog entries cover \code{warm_stream_aggregates}, \code{warm_enriched_alerts_spark}, \code{grafana_serving_tables}, \code{sklearn_isolation_forest_model}, and \code{model_joblib_artifact}. This is closer to real data engineering practice than writing governance only in the report: the metadata is produced by the pipeline itself.
 
 \section{Constraint Coverage and Validation}
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.4cm}X}
 \toprule
+\hdr
 \textbf{Constraint} & \textbf{Final coverage}\\
 \midrule
 C1--C2 Trusted & Separate \code{s3://trusted/} storage; per-source cleaning; rejected tables; Trusted Airflow DAG.\\
-C3--C4 Exploitation & Separate \code{s3://exploitation/} storage; joined, unified, correlated, flagged, warm, and KPI assets; Exploitation Airflow DAG.\\
-C5 Consumption & Functional CSV, JSON, and HTML outputs generated from exploitation data; dashboard includes CVEs, IOC matches, ML anomaly feed, alert trends, source IPs, and destination IPs; Kafka topics remain available for live event inspection.\\
-C6 Architecture & Updated P2 diagram and Option 1 rationale; cold, warm, and hot paths described.\\
-C7 Orchestration/containerization & P1 and P2 DAGs run in the Docker Compose Airflow stack; MinIO/Kafka/Postgres are containerized.\\
+C3--C4 Exploitation & Separate \code{s3://exploitation/} storage; joined, unified, correlated, flagged, Spark-enriched warm, and KPI assets; Exploitation Airflow DAG.\\
+C5 Consumption & Functional CSV, JSON, HTML, and Grafana outputs generated from exploitation data; dashboards include CVEs, IOC matches, ML anomaly feed, alert trends, source IPs, and destination IPs; Kafka topics remain available for live event inspection.\\
+C6 Architecture & Updated P2 diagram and Option 1 rationale; cold, warm, hot, Spark, and Grafana serving paths described.\\
+C7 Orchestration & \code{cybersecintel_end_to_end} waits for ingestion, warm aggregates, Trusted, Exploitation, and Consumption in dependency order; MinIO/Kafka/Postgres/Grafana are containerized.\\
 C8 Organization & Code is separated by stage: \code{trusted/}, \code{exploitation/}, \code{consumption/}, \code{governance/}, and \code{orchestration/airflow/dags/}.\\
-Governance & Implemented catalog, lineage, and quality metrics with SOC-specific product definitions.\\
+Governance & Implemented catalog, lineage, and quality metrics with SOC-specific product definitions for data products, model artifacts, Spark outputs, warm aggregates, and Grafana serving tables.\\
 \bottomrule
 \end{tabularx}
 
-The most recent verification run produced the following concrete evidence:
+The final verification run checks the following concrete evidence:
 \begin{itemize}
-  \item Unit test suite: 23 tests OK after the ML and destination-KPI extension.
-  \item Docker Compose configuration: \code{docker compose config --quiet} completed successfully.
-  \item Trusted DAG: 1592 KEV rows, 50000 EPSS rows, 643 NVD rows, 51946 URLhaus rows, 8129 ThreatFox rows, 209331 trusted Suricata rows, 3562 IDS alert rows, and 72 rejected Suricata rows.
-  \item Exploitation DAG: 17631 enriched CVE rows, 212893 network events, 10664 ML anomaly rows, 20 top destination-IP rows, governance outputs, and a trained ML model.
-  \item Consumption DAG: five files written under \code{consumption/outputs/}, including the dashboard with ML and destination-IP panels.
-  \item Delivery archive: integrity checked with \code{unzip -t}.
+  \item The 40-test unit suite covers the Python fallback path, Isolation Forest backend, timestamp-preserving Trusted deduplication, keyed Delta merge repair, warm aggregates, Grafana provisioning, Spark job configuration, orchestration order, and governance catalog.
+  \item Docker Compose includes MinIO, Kafka, Postgres, Airflow, and Grafana. The rebuilt Airflow image includes Java 17, Suricata, PySpark, Delta, and the Kafka connector; the Spark streaming task fails loudly rather than masking a missing runtime.
+  \item The parent \code{cybersecintel_end_to_end} DAG enforces the complete required stage order and waits for each child DAG to succeed.
+  \item Warm aggregate DAG writes landing files and a Delta \code{warm_stream_aggregates} table.
+  \item Exploitation DAG writes the Isolation Forest metadata and anomaly rows with model scores and labels.
+  \item Spark warm enrichment is wired as \code{spark_enrich_warm_alerts}; bounded Python enrichment remains available if the local Spark/Kafka runtime is unavailable.
+  \item Consumption DAG writes portable files and publishes Postgres serving tables for Grafana.
+  \item Delivery archive includes Grafana provisioning, model artifacts, tests, report source, generated PDF, and runtime outputs.
 \end{itemize}
 
 Validation commands:
 \begin{verbatim}
 .venv/bin/python -m unittest discover -s tests
 docker compose config --quiet
+docker compose build airflow-webserver airflow-scheduler airflow-init
+docker compose exec airflow-webserver airflow dags list-import-errors
+docker compose run --rm airflow-webserver airflow dags test \
+  cybersecintel_warm_stream_aggregates 2026-05-09
 docker compose run --rm airflow-webserver airflow dags test \
   cybersecintel_trusted_zone 2026-05-09
 docker compose run --rm airflow-webserver airflow dags test \
   cybersecintel_exploitation_zone 2026-05-09
 docker compose run --rm airflow-webserver airflow dags test \
   cybersecintel_consumption_exports 2026-05-09
+scripts/run_p2_local.sh --spark
+scripts/build_delivery.sh
 \end{verbatim}
 
-The expected evidence is: Delta tables in \code{trusted} and \code{exploitation}, governance tables in both P2 buckets, and five consumption files under \code{consumption/outputs/}.
+The expected evidence is: Delta tables in \code{trusted}, \code{deltalake}, and \code{exploitation}; governance tables in both P2 buckets; Isolation Forest artifacts under \code{models/ids_anomaly_detector/}; five consumption files under \code{consumption/outputs/}; and a provisioned Grafana dashboard at \code{http://localhost:3000}.
 
 \section{Limitations and Production Extensions}
 
-This final submission focuses on the course requirements: architecture, zone separation, transformations, orchestration, consumption, and governance. Several production upgrades are deliberately kept out of scope. First, the HTML dashboard is a reproducible submitted artifact; a deployed Grafana service would be the next operational step. Second, the ML model is an unsupervised local baseline trained on replay data; a production SOC would monitor model drift, validate labels when incident outcomes are known, and compare the robust model against scikit-learn Isolation Forest or similar algorithms. Third, Shodan and ThreatFox are API-key dependent, so the pipeline handles them as optional sources. Fourth, the CTU replay profile is bounded by default to keep the demo feasible on a laptop, but the same DAG can be expanded by changing replay limits.
+This final submission focuses on the course requirements: architecture, zone separation, transformations, orchestration, consumption, and governance. Several production upgrades remain deliberately bounded. First, Grafana uses a Postgres serving mirror rather than Spark SQL Thrift because the built-in Postgres datasource is more reproducible in the local Docker stack; Delta remains authoritative. Second, the ML model is an unsupervised Isolation Forest trained on replay data; a production SOC would monitor model drift and validate labels when incident outcomes are known. Third, Shodan and ThreatFox are API-key dependent, so the pipeline handles them as optional sources; in particular, IOC correlation is implemented and validated, but produces no real matches on this corpus because the replay traffic does not overlap current free-tier intelligence and the Shodan Host API requires a paid membership (the free \code{oss} plan returns HTTP~403), as detailed in the Exploitation Zone section. Fourth, the CTU replay and streaming profiles are bounded by default to keep the demo feasible on a laptop, but the same DAGs can be expanded by changing replay and streaming limits.
 
 These limitations are explicit design choices, not hidden missing pieces. The submitted system is complete for the P2 grading objective because it proves the full path from external sources and raw evidence through Trusted, Exploitation, ML prediction, governance, and consumption.
 
@@ -305,6 +460,8 @@ These limitations are explicit design choices, not hidden missing pieces. The su
   \item Suricata documentation: \url{https://docs.suricata.io/}
   \item Apache Airflow documentation: \url{https://airflow.apache.org/docs/}
   \item Apache Kafka documentation: \url{https://kafka.apache.org/documentation/}
+  \item Apache Spark Structured Streaming documentation: \url{https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html}
+  \item Grafana provisioning documentation: \url{https://grafana.com/docs/grafana/latest/administration/provisioning/}
   \item Delta Lake documentation: \url{https://docs.delta.io/}
   \item MinIO documentation: \url{https://min.io/docs/}
   \item scikit-learn Isolation Forest reference, used as the P2.1 design baseline for anomaly detection: \url{https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html}

@@ -56,6 +56,25 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cybersecintel-grafana
+    depends_on:
+      - postgres
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+
   airflow-init:
     build:
       context: .
@@ -109,6 +128,17 @@ services:
       MODELS_BUCKET: ${MODELS_BUCKET:-models}
       WARM_STREAM_MAX_MESSAGES: ${WARM_STREAM_MAX_MESSAGES:-500}
       WARM_STREAM_TIMEOUT_SECONDS: ${WARM_STREAM_TIMEOUT_SECONDS:-30}
+      WARM_STREAM_SOURCE: ${WARM_STREAM_SOURCE:-auto}
+      P2_ENGINE: ${P2_ENGINE:-python}
+      P2_TRUSTED_ENGINE: ${P2_TRUSTED_ENGINE:-}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:-local[*]}
+      SPARK_WARM_TRIGGER: ${SPARK_WARM_TRIGGER:-available_now}
+      SPARK_WARM_ENRICHMENT_CHECKPOINT: ${SPARK_WARM_ENRICHMENT_CHECKPOINT:-}
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+      GRAFANA_POSTGRES_HOST: postgres
+      GRAFANA_POSTGRES_PORT: 5432
       _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USER_USERNAME:-admin}
       _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_USER_PASSWORD:-admin}
     user: "${AIRFLOW_UID:-50000}:0"
@@ -176,6 +206,17 @@ services:
       MODELS_BUCKET: ${MODELS_BUCKET:-models}
       WARM_STREAM_MAX_MESSAGES: ${WARM_STREAM_MAX_MESSAGES:-500}
       WARM_STREAM_TIMEOUT_SECONDS: ${WARM_STREAM_TIMEOUT_SECONDS:-30}
+      WARM_STREAM_SOURCE: ${WARM_STREAM_SOURCE:-auto}
+      P2_ENGINE: ${P2_ENGINE:-python}
+      P2_TRUSTED_ENGINE: ${P2_TRUSTED_ENGINE:-}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:-local[*]}
+      SPARK_WARM_TRIGGER: ${SPARK_WARM_TRIGGER:-available_now}
+      SPARK_WARM_ENRICHMENT_CHECKPOINT: ${SPARK_WARM_ENRICHMENT_CHECKPOINT:-}
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+      GRAFANA_POSTGRES_HOST: postgres
+      GRAFANA_POSTGRES_PORT: 5432
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./orchestration/airflow/dags:/opt/airflow/dags
@@ -240,6 +281,17 @@ services:
       MODELS_BUCKET: ${MODELS_BUCKET:-models}
       WARM_STREAM_MAX_MESSAGES: ${WARM_STREAM_MAX_MESSAGES:-500}
       WARM_STREAM_TIMEOUT_SECONDS: ${WARM_STREAM_TIMEOUT_SECONDS:-30}
+      WARM_STREAM_SOURCE: ${WARM_STREAM_SOURCE:-auto}
+      P2_ENGINE: ${P2_ENGINE:-python}
+      P2_TRUSTED_ENGINE: ${P2_TRUSTED_ENGINE:-}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:-local[*]}
+      SPARK_WARM_TRIGGER: ${SPARK_WARM_TRIGGER:-available_now}
+      SPARK_WARM_ENRICHMENT_CHECKPOINT: ${SPARK_WARM_ENRICHMENT_CHECKPOINT:-}
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+      GRAFANA_POSTGRES_HOST: postgres
+      GRAFANA_POSTGRES_PORT: 5432
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./orchestration/airflow/dags:/opt/airflow/dags

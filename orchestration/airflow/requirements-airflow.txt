@@ -1,5 +1,11 @@
 boto3
 botocore
 deltalake
+delta-spark==3.2.0
 kafka-python
+joblib
+numpy
+psycopg2-binary
 pyarrow
+pyspark==3.5.1
+scikit-learn

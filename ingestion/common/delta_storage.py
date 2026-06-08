@@ -128,6 +128,13 @@ class DeltaLakeStorage:
             return str((self.local_root / table_name).resolve())
         return f"s3://{self.bucket}/{table_name}"
 
+    def table_uri(self, table_name: str, *, spark: bool = False) -> str:
+        """Return the table URI, optionally converted for Spark's S3A connector."""
+        uri = self._table_uri(table_name)
+        if spark and uri.startswith("s3://"):
+            return f"s3a://{uri.removeprefix('s3://')}"
+        return uri
+
     def _get_boto_client(self):
         if boto3 is None or Config is None:
             raise RuntimeError("boto3 and botocore are required for the MinIO backend.")
@@ -193,6 +200,19 @@ class DeltaLakeStorage:
             normalized.append(out)
         return normalized
 
+    @staticmethod
+    def _deduplicate_merge_records(
+        records: list[dict[str, Any]],
+        merge_keys: list[str] | None,
+    ) -> list[dict[str, Any]]:
+        """Keep the last source row for each merge key to satisfy Delta MERGE semantics."""
+        if not merge_keys:
+            return records
+        unique: dict[tuple[Any, ...], dict[str, Any]] = {}
+        for record in records:
+            unique[tuple(record.get(key) for key in merge_keys)] = record
+        return list(unique.values())
+
     # ── Core write/merge ───────────────────────────────────────────────────────
 
     def write_or_merge(
@@ -238,6 +258,7 @@ class DeltaLakeStorage:
         uri = self._table_uri(table_name)
         opts: dict[str, str] | None = self._storage_options() if self.backend != "local" else None
 
+        records = self._deduplicate_merge_records(records, merge_keys)
         table = pa.Table.from_pylist(self._records_for_delta(records))
 
         table_exists = DeltaTable.is_deltatable(uri, storage_options=opts)
@@ -245,17 +266,34 @@ class DeltaLakeStorage:
         if merge_keys and table_exists:
             dt = DeltaTable(uri, storage_options=opts)
             predicate = " AND ".join(f"s.{k} = t.{k}" for k in merge_keys)
-            (
-                dt.merge(
-                    source=table,
-                    predicate=predicate,
-                    source_alias="s",
-                    target_alias="t",
+            try:
+                (
+                    dt.merge(
+                        source=table,
+                        predicate=predicate,
+                        source_alias="s",
+                        target_alias="t",
+                    )
+                    .when_matched_update_all()
+                    .when_not_matched_insert_all()
+                    .execute()
                 )
-                .when_matched_update_all()
-                .when_not_matched_insert_all()
-                .execute()
-            )
+            except Exception as exc:
+                if "MERGE matched a target row with multiple source rows" not in str(exc):
+                    raise
+                repaired = self._deduplicate_merge_records(
+                    dt.to_pyarrow_table().to_pylist() + records,
+                    merge_keys,
+                )
+                repaired_table = pa.Table.from_pylist(self._records_for_delta(repaired))
+                write_deltalake(
+                    uri,
+                    repaired_table,
+                    mode="overwrite",
+                    partition_by=partition_by,
+                    storage_options=opts,
+                    schema_mode="overwrite",
+                )
         elif merge_keys is None and table_exists:
             # Append-only (stream events)
             write_deltalake(
