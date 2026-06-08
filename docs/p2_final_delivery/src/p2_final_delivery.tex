@@ -64,6 +64,7 @@
     inner sep=5pt,font=\small,minimum height=0.95cm},
   arr/.style={-{Latex[length=2.2mm]},draw=csiNavy,semithick},
   warr/.style={-{Latex[length=2.2mm]},draw=csiWarn,semithick,dashed},
+  capr/.style={-{Latex[length=2.2mm]},draw=csiTeal,semithick,dashed},
 }
 
 \title{\vspace{-1.1cm}CyberSecIntel\\P2 Final Delivery\\Trusted Zone, Exploitation Zone, Consumption, and Governance}
@@ -77,6 +78,17 @@
 \section{Instructions}
 
 CyberSecIntel is a cybersecurity data platform for small SOC workflows. P1 implemented ingestion and a governed Landing/Silver lakehouse: public vulnerability feeds, IOC feeds, CTU-13 PCAP artifacts, Suricata replay outputs, and Kafka topics are stored in MinIO and Delta Lake. P2 completes the architecture required by the statement: Trusted Zone, Exploitation Zone, downstream consumption, and governance.
+
+\textbf{Repository access.} The project repository is:
+\begin{center}
+  \url{https://github.com/didicayu/BDM_P1_Cayuela_Masson.git}
+\end{center}
+The final P2 implementation is on branch \code{main}. A supervisor can clone and run it locally:
+\begin{verbatim}
+git clone https://github.com/didicayu/BDM_P1_Cayuela_Masson.git
+cd BDM_P1_Cayuela_Masson
+cp .env.example .env
+\end{verbatim}
 
 \textbf{Run order.}
 \begin{enumerate}
@@ -289,6 +301,25 @@ Quality metrics & \code{governance_quality_metrics} records row counts, rejected
 
 \textbf{Detailed ML product example: \code{ml_anomaly_model}.} Domain: ML Artifacts. Owner: CyberSecIntel data engineering team. Description: trained unsupervised event-anomaly baseline for network telemetry. Upstream lineage: \code{exploitation/network_events}. Quality rules: training row count is recorded, threshold is non-negative, feature list is stored, and the output anomaly table contains model scores and reasons. Access policy: analysts and engineers can read; only the exploitation DAG writes. This artifact is important because ML outputs must be governed like data products: analysts need to know when the model was trained, on how many rows, what features it used, and where the produced predictions came from.
 
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=0.5cm and 0.9cm]
+    \node[data] (src) {trusted/ids\_alerts\\trusted/suricata\_events};
+    \node[data, right=of src] (ne) {exploitation/\\network\_events};
+    \node[data, right=of ne] (flags) {exploitation/\\anomaly\_flags};
+    \node[data, right=of flags] (serve) {Postgres mirror\\\& Grafana};
+    \node[proc, below=1.05cm of flags, text width=4.6cm] (gov) {governance\_lineage \,+\, governance\_quality\_metrics\\(run id, task, rows read/written, status)};
+    \draw[arr] (src) -- (ne);
+    \draw[arr] (ne) -- (flags);
+    \draw[arr] (flags) -- (serve);
+    \draw[capr] (src) -- (gov);
+    \draw[capr] (ne) -- (gov);
+    \draw[capr] (flags) -- (gov);
+    \draw[capr] (serve) -- (gov);
+  \end{tikzpicture}
+  \caption{Embedded governance. Every zone transition (solid) also emits lineage and quality metrics (dashed) as a side effect of data movement, so each product is traceable from Trusted inputs through Exploitation to the Grafana serving layer.}
+\end{figure}
+
 \section{Source Mapping}
 
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.3cm}X}
@@ -337,6 +368,14 @@ P2.2: deepen governance & The final delivery adds data product catalog, lineage,
 The only P2.1 design choice intentionally adapted is the Grafana data-serving route. P2.1 described Grafana through Spark SQL Thrift; the final implementation uses Postgres as a serving cache because Grafana's built-in Postgres datasource is reliable in the local Docker stack. Delta remains authoritative and Spark remains available for transformation and streaming jobs.
 
 \section{Implementation Walkthrough}
+
+All P2 stages are orchestrated as Airflow DAGs alongside the P1 ingestion DAGs. The parent \code{cybersecintel_end_to_end} DAG sequences the required path, while each zone also remains independently triggerable for debugging and re-runs.
+
+\begin{figure}[H]
+  \centering
+  \fcolorbox{csiBoxBorder}{white}{\includegraphics[width=0.98\textwidth,height=0.36\textheight,keepaspectratio]{airflow-screencap.png}}
+  \caption{Airflow DAG inventory for the full platform: P1 ingestion (\code{api_expansion_ingestion}, \code{dataset_artifact_ingestion}, \code{pcap_replay}) and P2 (\code{warm_stream_aggregates}, \code{trusted_zone}, \code{exploitation_zone}, \code{consumption_exports}) coordinated by the \code{end_to_end} parent DAG, with recent successful runs.}
+\end{figure}
 
 \textbf{Trusted run.} The Airflow task calls \code{trusted.run_trusted.run_trusted_zone}. It opens the P1 Delta bucket, reads the known source tables, applies table-specific normalization, and writes two kinds of output per source: a clean Trusted table and a rejected table. The run returns row counts per source and writes governance tables in the same bucket. In the verified run, Suricata events were the only table with rejected rows, which is expected because replay-derived event records can vary more than API-feed records.
 

@@ -3,7 +3,7 @@
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Instructions}{1}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}Architecture Design}{1}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Architecture Design}{2}{section.6}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Final P2 architecture. P1 feeds Landing/Silver; P2 adds Trusted, Exploitation, Consumption, and Governance checkpoints.}}{2}{figure.8}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Why the same lakehouse stack is kept}{2}{subsection.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Trusted Zone}{3}{section.10}\protected@file@percent }
@@ -17,10 +17,12 @@
 \@writefile{toc}{\contentsline {section}{\numberline {5}Data Consumption}{6}{section.20}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Provisioned \emph  {CyberSecIntel SOC} Grafana dashboard reading the \nolinkurl  {cybersecintel_consumption} Postgres serving mirror: daily alert trend, top prioritized CVEs, top signatures, source and destination IPs, the ML anomaly feed, IOC matches, and Isolation Forest model metadata.}}{6}{figure.22}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {6}Data Governance}{7}{section.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Source Mapping}{8}{section.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Previous Delivery Promise Coverage}{8}{section.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Implementation Walkthrough}{9}{section.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Constraint Coverage and Validation}{11}{section.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Limitations and Production Extensions}{12}{section.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}References}{12}{section.29}\protected@file@percent }
-\gdef \@abspage@last{12}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Embedded governance. Every zone transition (solid) also emits lineage and quality metrics (dashed) as a side effect of data movement, so each product is traceable from Trusted inputs through Exploitation to the Grafana serving layer.}}{7}{figure.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Source Mapping}{8}{section.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Previous Delivery Promise Coverage}{8}{section.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Implementation Walkthrough}{9}{section.28}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Airflow DAG inventory for the full platform: P1 ingestion (\nolinkurl  {api_expansion_ingestion}, \nolinkurl  {dataset_artifact_ingestion}, \nolinkurl  {pcap_replay}) and P2 (\nolinkurl  {warm_stream_aggregates}, \nolinkurl  {trusted_zone}, \nolinkurl  {exploitation_zone}, \nolinkurl  {consumption_exports}) coordinated by the \nolinkurl  {end_to_end} parent DAG, with recent successful runs.}}{10}{figure.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Constraint Coverage and Validation}{11}{section.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Limitations and Production Extensions}{12}{section.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}References}{12}{section.33}\protected@file@percent }
+\gdef \@abspage@last{13}

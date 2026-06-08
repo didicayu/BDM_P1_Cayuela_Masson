@@ -304,12 +304,12 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/ec-lmtt10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/rm-lmr10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/lmmi10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/lmsy10.tfm
-INPUT build/../assets/BDM_P2.drawio.png
-INPUT build/../assets/BDM_P2.drawio.png
-INPUT build/../assets/BDM_P2.drawio.png
-INPUT build/../assets/BDM_P2.drawio.png
 INPUT /usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc
+INPUT build/../assets/BDM_P2.drawio.png
+INPUT build/../assets/BDM_P2.drawio.png
+INPUT build/../assets/BDM_P2.drawio.png
+INPUT build/../assets/BDM_P2.drawio.png
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/ec-lmbx12.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/lm/ts1lmr.fd
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/lm/ts1lmr.fd
@@ -339,6 +339,10 @@ INPUT build/../assets/grafana_dashboard.png
 INPUT build/../assets/grafana_dashboard.png
 INPUT build/../assets/grafana_dashboard.png
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/ec-lmtk10.tfm
+INPUT build/../assets/airflow-screencap.png
+INPUT build/../assets/airflow-screencap.png
+INPUT build/../assets/airflow-screencap.png
+INPUT build/../assets/airflow-screencap.png
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/ts1-lmr10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/lm/ec-lmtt10.tfm
 INPUT build/p2_final_delivery.aux
